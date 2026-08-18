@@ -1,6 +1,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <div id="flighty-root"></div>
 <style>
   #flighty-root {
@@ -135,15 +136,28 @@
   #flighty-root .pass-list::-webkit-scrollbar { width: 6px; }
   #flighty-root .pass-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 
-  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: fit-content; }
-  #flighty-root .pass-main { padding: 16px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  #flighty-root .modal-overlay { position: absolute; inset: 0; background: rgba(3,6,12,.72); display:flex; align-items:center; justify-content:center; z-index: 1000; border-radius: 14px; }
+  #flighty-root .modal-box { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; max-width: 320px; width: 88%; text-align:center; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+  #flighty-root .modal-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  #flighty-root .modal-msg { font-size: 13px; color: var(--text-dim); margin-bottom: 18px; line-height: 1.5; }
+  #flighty-root .modal-actions { display:flex; gap: 10px; justify-content:center; }
+  #flighty-root .btn-danger { background: var(--coral); color: #2a0f08; border:none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor:pointer; }
+
+  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: 118px; transition: border-color .15s; }
+  #flighty-root .pass:hover { border-color: rgba(79,216,201,.35); }
+  #flighty-root .pass-main { padding: 14px 40px 14px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow: hidden; }
+  #flighty-root .pass-meta { display:flex; gap: 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; overflow: hidden; max-height: 15px; }
+  #flighty-root .pass-meta b { color: var(--text); font-weight: 500; }
+  #flighty-root .pass-tag { font-size: 9.5px; padding: 2px 7px; border-radius: 10px; background: rgba(240,117,90,.15); color: var(--coral); display:inline-block; width: fit-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #flighty-root .pass-del { position:absolute; top:6px; right:6px; background:none; border:none; color: var(--text-faint); cursor:pointer; font-size: 14px; padding: 2px 6px; border-radius:4px; line-height:1; z-index: 2; }
+  #flighty-root .pass-del:hover { color: var(--coral); background: rgba(240,117,90,.1); }
+  #flighty-root .pass-edit { position:absolute; top:6px; right:30px; background:none; border:none; color: var(--text-faint); cursor:pointer; font-size: 13px; padding: 2px 6px; border-radius:4px; line-height:1; z-index: 2; }
+  #flighty-root .pass-edit:hover { color: var(--teal); background: rgba(79,216,201,.1); }
   #flighty-root .pass-route { display:flex; align-items:center; gap: 10px; }
   #flighty-root .pass-code { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: .02em; flex-shrink:0; }
   #flighty-root .pass-arrow { color: var(--teal); font-size: 12px; flex:1; display:flex; align-items:center; gap:6px; min-width: 20px;}
   #flighty-root .pass-arrow .ln { flex:1; height:1px; background: repeating-linear-gradient(90deg, var(--text-faint) 0 4px, transparent 4px 8px); min-width: 10px;}
   #flighty-root .pass-cities { font-size: 11.5px; color: var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #flighty-root .pass-meta { display:flex; gap: 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
-  #flighty-root .pass-meta b { color: var(--text); font-weight: 500; }
   #flighty-root .pass-stub { width: 82px; border-left: 1px dashed var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 10px 6px; background: rgba(255,255,255,.015); position: relative; flex-shrink:0; }
   #flighty-root .pass-stub .date-d { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; color: var(--gold); line-height:1; }
   #flighty-root .pass-stub .date-m { font-size: 9.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
@@ -151,17 +165,18 @@
   #flighty-root .pass-stub::before, #flighty-root .pass-stub::after { content:''; position:absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); left: -6px; }
   #flighty-root .pass-stub::before { top: -6px; }
   #flighty-root .pass-stub::after { bottom: -6px; }
-  #flighty-root .pass-tag { font-size: 9.5px; padding: 2px 7px; border-radius: 10px; background: rgba(240,117,90,.15); color: var(--coral); display:inline-block; width: fit-content; }
-  #flighty-root .pass-del { position:absolute; top:6px; right:6px; background:none; border:none; color: var(--text-faint); cursor:pointer; font-size: 14px; padding: 2px 6px; border-radius:4px; line-height:1; }
-  #flighty-root .pass-del:hover { color: var(--coral); background: rgba(240,117,90,.1); }
 
   #flighty-root .empty-note { text-align:center; color: var(--text-faint); font-size: 12.5px; padding: 20px 0; }
 
   #flighty-root .add-btn { display:flex; align-items:center; gap:8px; background: var(--teal); color: #061214; border:none; padding: 10px 16px; border-radius: 9px; font-weight: 600; font-size: 13px; cursor:pointer; transition: transform .1s; }
   #flighty-root .add-btn:hover { transform: translateY(-1px); }
+  #flighty-root .panel-head-actions { display:flex; gap: 8px; flex-wrap: wrap; }
+  #flighty-root .export-btn { display:flex; align-items:center; gap:6px; background: transparent; color: var(--text-dim); border: 1px solid var(--line); padding: 10px 14px; border-radius: 9px; font-weight: 600; font-size: 12.5px; cursor:pointer; transition: all .15s; }
+  #flighty-root .export-btn:hover { color: var(--text); border-color: var(--teal); }
   #flighty-root .add-form { display: none; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
   #flighty-root .add-form.open { display: block; }
   #flighty-root .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; }
+  #flighty-root .form-title { font-size: 13px; font-weight: 700; color: var(--teal); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .06em; }
   #flighty-root .field label { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .07em; display:block; margin-bottom: 5px; }
   #flighty-root .field input, #flighty-root .field select { width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text); padding: 9px 10px; border-radius: 7px; font-size: 13px; font-family: inherit; }
   #flighty-root .field input:focus, #flighty-root .field select:focus { outline: none; border-color: var(--teal); }
@@ -216,6 +231,27 @@ async function requirePin() {
   alert('PIN errato.');
   return false;
 }
+
+function showConfirmModal(title, message, confirmLabel) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-box">
+        <div class="modal-title">${title}</div>
+        <div class="modal-msg">${message}</div>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="modal-cancel">Annulla</button>
+          <button class="btn-danger" id="modal-confirm">${confirmLabel || 'Conferma'}</button>
+        </div>
+      </div>`;
+    root.appendChild(overlay);
+    const close = (result) => { overlay.remove(); resolve(result); };
+    overlay.querySelector('#modal-cancel').onclick = () => close(false);
+    overlay.querySelector('#modal-confirm').onclick = () => close(true);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+  });
+}
 const root = document.getElementById('flighty-root');
 root.innerHTML = '<div class="loading-state">Carico i tuoi voli…</div>';
 
@@ -225,6 +261,7 @@ let searchTerm = '';
 let globalFilters = { year: null, airport: null, company: null, aircraft: null };
 let mapStyle = 'satellite'; // 'satellite' | 'dark'
 let syncMode = 'cloud'; // 'cloud' | 'offline'
+let editingFlightId = null; // uuid of flight currently being edited, or null when adding new
 const TODAY_STR = new Date().toISOString().slice(0,10);
 
 function rowToFlight(row) {
@@ -278,6 +315,13 @@ async function deleteFlightRemote(id) {
   if (!supabaseClient || !id) return;
   const { error } = await supabaseClient.from('flights').delete().eq('id', id);
   if (error) throw error;
+}
+
+async function updateFlightRemote(id, flight) {
+  if (!supabaseClient) throw new Error('offline');
+  const { data, error } = await supabaseClient.from('flights').update(flightToRow(flight)).eq('id', id).select();
+  if (error) throw error;
+  return rowToFlight(data[0]);
 }
 
 function airportInfo(code) {
@@ -521,11 +565,43 @@ function renderRankList(counts, activeVal, dim, labelFn) {
   return `<div class="rank-scroll">${rows}</div>`;
 }
 
+function applyQuickFilters(list) {
+  let out = list;
+  const now = new Date();
+  if (currentFilter !== 'all') {
+    const yearsAgo = { '1y': 1, '3y': 3 };
+    if (currentFilter === 'thisyear') {
+      out = out.filter(f => f.date.slice(0,4) === String(now.getFullYear()));
+    } else if (currentFilter === 'work') {
+      out = out.filter(f => (f.note||'').toUpperCase().includes('X LAVORO'));
+    } else if (yearsAgo[currentFilter]) {
+      const cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - yearsAgo[currentFilter]);
+      out = out.filter(f => new Date(f.date) >= cutoff);
+    }
+  }
+  if (searchTerm.trim()) {
+    const t = searchTerm.trim().toLowerCase();
+    out = out.filter(f =>
+      f.company.toLowerCase().includes(t) ||
+      f.from.toLowerCase().includes(t) || f.to.toLowerCase().includes(t) ||
+      (f.fromCity||'').toLowerCase().includes(t) || (f.toCity||'').toLowerCase().includes(t) ||
+      (f.aircraft||'').toLowerCase().includes(t)
+    );
+  }
+  return out;
+}
+
+// Base list after quick chips (date range / work) + search — everything else builds on this
+function getBaseFlights() {
+  return applyQuickFilters(flights);
+}
+
 function renderRankPanels() {
-  const yearsFlights = applyGlobalFilters(flights, 'year');
-  const airportFlights = applyGlobalFilters(flights, 'airport');
-  const companyFlights = applyGlobalFilters(flights, 'company');
-  const aircraftFlights = applyGlobalFilters(flights, 'aircraft');
+  const base = getBaseFlights();
+  const yearsFlights = applyGlobalFilters(base, 'year');
+  const airportFlights = applyGlobalFilters(base, 'airport');
+  const companyFlights = applyGlobalFilters(base, 'company');
+  const aircraftFlights = applyGlobalFilters(base, 'aircraft');
 
   const yearCounts = countBy(yearsFlights, f => f.date.slice(0,4));
   const years = Object.keys(yearCounts).sort();
@@ -569,29 +645,7 @@ function renderRankPanels() {
 }
 
 function getFilteredFlights() {
-  let list = applyGlobalFilters(flights, null).slice().sort((a,b) => b.date.localeCompare(a.date));
-  const now = new Date();
-  if (currentFilter !== 'all') {
-    const yearsAgo = { '1y': 1, '3y': 3 };
-    if (currentFilter === 'thisyear') {
-      list = list.filter(f => f.date.slice(0,4) === String(now.getFullYear()));
-    } else if (currentFilter === 'work') {
-      list = list.filter(f => (f.note||'').toUpperCase().includes('X LAVORO'));
-    } else if (yearsAgo[currentFilter]) {
-      const cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - yearsAgo[currentFilter]);
-      list = list.filter(f => new Date(f.date) >= cutoff);
-    }
-  }
-  if (searchTerm.trim()) {
-    const t = searchTerm.trim().toLowerCase();
-    list = list.filter(f =>
-      f.company.toLowerCase().includes(t) ||
-      f.from.toLowerCase().includes(t) || f.to.toLowerCase().includes(t) ||
-      (f.fromCity||'').toLowerCase().includes(t) || (f.toCity||'').toLowerCase().includes(t) ||
-      (f.aircraft||'').toLowerCase().includes(t)
-    );
-  }
-  return list;
+  return applyGlobalFilters(getBaseFlights(), null).slice().sort((a,b) => b.date.localeCompare(a.date));
 }
 
 function renderPass(f, idx) {
@@ -625,8 +679,42 @@ function renderPass(f, idx) {
         <div class="date-m">${month}</div>
         <div class="date-y">${year}</div>
       </div>
+      <button class="pass-edit" data-edit="${idx}" title="Modifica volo">✎</button>
       <button class="pass-del" data-del="${idx}" title="Elimina volo">✕</button>
     </div>`;
+}
+
+function airportDatalistOptions() {
+  return Object.keys(AIRPORTS).sort().map(code => `<option value="${code}">${AIRPORTS[code].city}</option>`).join('');
+}
+function companyDatalistOptions() {
+  const companies = [...new Set(flights.map(f=>f.company).filter(Boolean))].sort();
+  return companies.map(c => `<option value="${c.replace(/"/g,'&quot;')}"></option>`).join('');
+}
+function aircraftDatalistOptions() {
+  const models = [...new Set(flights.map(f=>f.aircraft).filter(Boolean))].sort();
+  return models.map(a => `<option value="${a.replace(/"/g,'&quot;')}"></option>`).join('');
+}
+
+function exportBackupXlsx() {
+  if (typeof XLSX === 'undefined') { alert('Libreria di esportazione non disponibile.'); return; }
+  const rows = flights.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(f => ({
+    'Data': f.date,
+    'Compagnia': f.company,
+    'Da (IATA)': f.from,
+    'Città partenza': f.fromCity || '',
+    'A (IATA)': f.to,
+    'Città arrivo': f.toCity || '',
+    'Aereo': f.aircraft || '',
+    'Km': f.km || '',
+    'Prezzo (€)': f.price || '',
+    'Note': f.note || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Voli');
+  const stamp = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `backup_voli_${stamp}.xlsx`);
 }
 
 function renderTimeline() {
@@ -640,7 +728,10 @@ function renderTimeline() {
     <div class="panel">
       <div class="panel-head">
         <div class="panel-title"><span class="dot"></span>I tuoi voli (${list.length})</div>
-        <button class="add-btn" id="toggle-add">+ Aggiungi volo</button>
+        <div class="panel-head-actions">
+          <button class="export-btn" id="export-backup" title="Scarica un file Excel con tutti i voli">⬇ Esporta backup</button>
+          <button class="add-btn" id="toggle-add">+ Aggiungi volo</button>
+        </div>
       </div>
       <div class="timeline-controls">
         <div class="chip ${currentFilter==='all'?'active':''}" data-filter="all">Tutti</div>
@@ -651,17 +742,22 @@ function renderTimeline() {
         <input class="search-input" id="search-box" placeholder="Cerca..." value="${searchTerm}"/>
       </div>
       <div class="add-form" id="add-form">
+        <div class="form-title" id="form-title">Nuovo volo</div>
         <div class="form-grid">
           <div class="field"><label>Data</label><input type="date" id="f-date"/></div>
-          <div class="field"><label>Compagnia</label><input type="text" id="f-company" placeholder="es. Ryanair"/></div>
-          <div class="field"><label>Da (IATA)</label><input type="text" id="f-from" placeholder="es. BGY" maxlength="4" style="text-transform:uppercase"/></div>
+          <div class="field"><label>Compagnia</label><input type="text" id="f-company" placeholder="es. Ryanair" list="company-options"/></div>
+          <div class="field"><label>Da (IATA)</label><input type="text" id="f-from" placeholder="es. BGY" maxlength="4" style="text-transform:uppercase" list="airport-options"/></div>
           <div class="field"><label>Città partenza</label><input type="text" id="f-fromcity" placeholder="es. Bergamo"/></div>
-          <div class="field"><label>A (IATA)</label><input type="text" id="f-to" placeholder="es. VLC" maxlength="4" style="text-transform:uppercase"/></div>
+          <div class="field"><label>A (IATA)</label><input type="text" id="f-to" placeholder="es. VLC" maxlength="4" style="text-transform:uppercase" list="airport-options"/></div>
           <div class="field"><label>Città arrivo</label><input type="text" id="f-tocity" placeholder="es. Valencia"/></div>
-          <div class="field"><label>Aereo</label><input type="text" id="f-aircraft" placeholder="es. B737-800"/></div>
+          <div class="field"><label>Aereo</label><input type="text" id="f-aircraft" placeholder="es. B737-800" list="aircraft-options"/></div>
           <div class="field"><label>Distanza (km)</label><input type="number" id="f-km" placeholder="es. 1200"/></div>
+          <div class="field"><label>Prezzo (€)</label><input type="number" step="0.01" id="f-price" placeholder="es. 24.99"/></div>
           <div class="field"><label>Note</label><input type="text" id="f-note" placeholder="opzionale"/></div>
         </div>
+        <datalist id="airport-options">${airportDatalistOptions()}</datalist>
+        <datalist id="company-options">${companyDatalistOptions()}</datalist>
+        <datalist id="aircraft-options">${aircraftDatalistOptions()}</datalist>
         <div class="form-actions">
           <button class="btn-primary" id="save-flight">Salva volo</button>
           <button class="btn-ghost" id="cancel-add">Annulla</button>
@@ -674,7 +770,7 @@ function renderTimeline() {
 }
 
 function render() {
-  const filteredForStats = applyGlobalFilters(flights, null);
+  const filteredForStats = applyGlobalFilters(getBaseFlights(), null);
   const stats = computeStats(filteredForStats);
   root.innerHTML = `
     <div class="bg-grid"></div>
@@ -746,31 +842,52 @@ function bindEvents(mapFlights) {
       const passList = root.querySelector('#pass-list');
       passList.innerHTML = list.length ? list.map((f,i)=>renderPass(f, idxMap[i])).join('') : '<div class="empty-note">Nessun volo trovato con questi filtri.</div>';
       bindPassDelete();
+      bindPassEdit();
       const countTitles = root.querySelectorAll('.panel-title');
       countTitles.forEach(t => { if (t.textContent.includes('I tuoi voli')) t.innerHTML = `<span class="dot"></span>I tuoi voli (${list.length})`; });
     });
   }
 
-  // toggle add form
+  // toggle add form (new flight)
   const toggleBtn = root.querySelector('#toggle-add');
+  const exportBtn = root.querySelector('#export-backup');
+  if (exportBtn) exportBtn.addEventListener('click', exportBackupXlsx);
   const addForm = root.querySelector('#add-form');
   if (toggleBtn) {
     toggleBtn.addEventListener('click', async () => {
       if (!addForm.classList.contains('open')) {
         const ok = await requirePin();
         if (!ok) return;
-      }
-      addForm.classList.toggle('open');
-      if (addForm.classList.contains('open')) {
+        editingFlightId = null;
+        resetFormFields();
+        root.querySelector('#save-flight').textContent = 'Salva volo';
+        root.querySelector('#form-title').textContent = 'Nuovo volo';
         const dEl = root.querySelector('#f-date');
-        if (dEl && !dEl.value) dEl.value = new Date().toISOString().slice(0,10);
+        dEl.value = new Date().toISOString().slice(0,10);
+        addForm.classList.add('open');
+      } else {
+        addForm.classList.remove('open');
       }
     });
   }
   const cancelBtn = root.querySelector('#cancel-add');
-  if (cancelBtn) cancelBtn.addEventListener('click', () => addForm.classList.remove('open'));
+  if (cancelBtn) cancelBtn.addEventListener('click', () => { addForm.classList.remove('open'); editingFlightId = null; });
 
-  // save flight
+  // autocompila la città quando riconosce un codice IATA noto
+  ['f-from','f-to'].forEach(fieldId => {
+    const input = root.querySelector('#'+fieldId);
+    const cityId = fieldId === 'f-from' ? 'f-fromcity' : 'f-tocity';
+    if (!input) return;
+    input.addEventListener('blur', () => {
+      const code = input.value.trim().toUpperCase();
+      const cityInput = root.querySelector('#'+cityId);
+      if (AIRPORTS[code] && cityInput && !cityInput.value.trim()) {
+        cityInput.value = AIRPORTS[code].city;
+      }
+    });
+  });
+
+  // save flight (insert or update depending on editingFlightId)
   const saveBtn = root.querySelector('#save-flight');
   if (saveBtn) {
     saveBtn.addEventListener('click', async () => {
@@ -782,6 +899,7 @@ function bindEvents(mapFlights) {
       const toCity = root.querySelector('#f-tocity').value.trim();
       const aircraft = root.querySelector('#f-aircraft').value.trim();
       const kmVal = root.querySelector('#f-km').value;
+      const priceVal = root.querySelector('#f-price').value;
       const note = root.querySelector('#f-note').value.trim();
       const msg = root.querySelector('#form-msg');
 
@@ -796,29 +914,95 @@ function bindEvents(mapFlights) {
       if (fromCity && AIRPORTS[from]) AIRPORTS[from].city = fromCity;
       if (toCity && AIRPORTS[to]) AIRPORTS[to].city = toCity;
 
-      const newFlight = {
+      // preserve "extra" (legacy reimbursement field) untouched when editing — no UI for it, don't wipe it
+      const existingExtra = editingFlightId ? (flights.find(f => f.id === editingFlightId) || {}).extra : null;
+
+      const flightData = {
         date, company, from, fromCity: fromCity || AIRPORTS[from].city, to, toCity: toCity || AIRPORTS[to].city,
         aircraft: aircraft || null, tail: null,
         km: kmVal ? parseFloat(kmVal) : null,
-        price: null, note: note || null, extra: null
+        price: priceVal ? parseFloat(priceVal) : null,
+        note: note || null, extra: existingExtra ?? null
       };
-      try {
-        const saved = await insertFlightRemote(newFlight);
-        flights.push(saved);
-        msg.textContent = date > TODAY_STR ? 'Volo in programma salvato ✓ (sincronizzato)' : 'Volo salvato ✓ (sincronizzato)';
-        msg.style.color = '#4FD8C9';
-      } catch (err) {
-        console.error('Errore salvataggio remoto', err);
-        flights.push(newFlight);
-        msg.textContent = 'Salvato solo su questo dispositivo — controlla la connessione.';
-        msg.style.color = '#F0755A';
+
+      if (editingFlightId) {
+        try {
+          const updated = await updateFlightRemote(editingFlightId, flightData);
+          const idx = flights.findIndex(f => f.id === editingFlightId);
+          if (idx >= 0) flights[idx] = updated;
+          msg.textContent = 'Volo aggiornato ✓ (sincronizzato)';
+          msg.style.color = '#4FD8C9';
+        } catch (err) {
+          console.error('Errore aggiornamento remoto', err);
+          const idx = flights.findIndex(f => f.id === editingFlightId);
+          if (idx >= 0) flights[idx] = { ...flights[idx], ...flightData };
+          msg.textContent = 'Aggiornato solo su questo dispositivo — controlla la connessione.';
+          msg.style.color = '#F0755A';
+        }
+        editingFlightId = null;
+      } else {
+        try {
+          const saved = await insertFlightRemote(flightData);
+          flights.push(saved);
+          msg.textContent = date > TODAY_STR ? 'Volo in programma salvato ✓ (sincronizzato)' : 'Volo salvato ✓ (sincronizzato)';
+          msg.style.color = '#4FD8C9';
+        } catch (err) {
+          console.error('Errore salvataggio remoto', err);
+          flights.push(flightData);
+          msg.textContent = 'Salvato solo su questo dispositivo — controlla la connessione.';
+          msg.style.color = '#F0755A';
+        }
       }
       setTimeout(() => render(), 600);
     });
   }
 
   bindPassDelete();
+  bindPassEdit();
   setTimeout(() => initLeafletMap(mapFlights), 0);
+}
+
+function resetFormFields() {
+  ['f-date','f-company','f-from','f-fromcity','f-to','f-tocity','f-aircraft','f-km','f-price','f-note'].forEach(id => {
+    const el = root.querySelector('#'+id);
+    if (el) el.value = '';
+  });
+  const msg = root.querySelector('#form-msg');
+  if (msg) msg.textContent = '';
+}
+
+async function openEditForm(idx) {
+  const ok = await requirePin();
+  if (!ok) return;
+  const f = flights[idx];
+  if (!f) return;
+  editingFlightId = f.id;
+  const addForm = root.querySelector('#add-form');
+  root.querySelector('#f-date').value = f.date;
+  root.querySelector('#f-company').value = f.company || '';
+  root.querySelector('#f-from').value = f.from || '';
+  root.querySelector('#f-fromcity').value = f.fromCity || '';
+  root.querySelector('#f-to').value = f.to || '';
+  root.querySelector('#f-tocity').value = f.toCity || '';
+  root.querySelector('#f-aircraft').value = f.aircraft || '';
+  root.querySelector('#f-km').value = f.km || '';
+  root.querySelector('#f-price').value = f.price || '';
+  root.querySelector('#f-note').value = f.note || '';
+  root.querySelector('#form-msg').textContent = '';
+  root.querySelector('#save-flight').textContent = 'Salva modifiche';
+  root.querySelector('#form-title').textContent = 'Modifica volo';
+  addForm.classList.add('open');
+  addForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function bindPassEdit() {
+  root.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute('data-edit'), 10);
+      openEditForm(idx);
+    });
+  });
 }
 
 function bindPassDelete() {
@@ -828,18 +1012,23 @@ function bindPassDelete() {
       const ok = await requirePin();
       if (!ok) return;
       const idx = parseInt(btn.getAttribute('data-del'), 10);
-      if (confirm('Eliminare questo volo?')) {
-        const target = flights[idx];
-        try {
-          await deleteFlightRemote(target.id);
-        } catch (err) {
-          console.error('Errore eliminazione remota', err);
-          alert('Non sono riuscito a eliminarlo dal database condiviso (offline?). Riprova quando sei online.');
-          return;
-        }
-        flights.splice(idx, 1);
-        render();
+      const target = flights[idx];
+      if (!target) return;
+      const confirmed = await showConfirmModal(
+        'Eliminare questo volo?',
+        `${target.from} → ${target.to} · ${target.date.split('-').reverse().join('/')}<br/>Questa azione non può essere annullata.`,
+        'Elimina'
+      );
+      if (!confirmed) return;
+      try {
+        await deleteFlightRemote(target.id);
+      } catch (err) {
+        console.error('Errore eliminazione remota', err);
+        alert('Non sono riuscito a eliminarlo dal database condiviso (offline?). Riprova quando sei online.');
+        return;
       }
+      flights.splice(idx, 1);
+      render();
     });
   });
 }
