@@ -125,6 +125,9 @@
   #flighty-root .chip { padding: 6px 12px; border-radius: 20px; border: 1px solid var(--line); background: var(--bg-panel-2); font-size: 12px; color: var(--text-dim); cursor: pointer; transition: all .15s; }
   #flighty-root .chip:hover { border-color: var(--teal); color: var(--text); }
   #flighty-root .chip.active { background: var(--teal); border-color: var(--teal); color: #061214; font-weight: 600; }
+  #flighty-root .chip-work { border-color: rgba(240,117,90,.4); color: var(--coral); }
+  #flighty-root .chip-work:hover { border-color: var(--coral); color: var(--coral); }
+  #flighty-root .chip-work.active { background: var(--coral); border-color: var(--coral); color: #2a0f08; font-weight: 600; }
   #flighty-root .search-input { margin-left: auto; background: var(--bg-panel-2); border: 1px solid var(--line); color: var(--text); padding: 7px 12px; border-radius: 20px; font-size: 12px; width: 160px; }
   #flighty-root .search-input:focus { outline:none; border-color: var(--teal); }
 
@@ -179,6 +182,10 @@ const SEED_FLIGHTS = [{"date": "2003-07-06", "company": "Meridiana", "from": "BG
 const AIRPORTS = {"AHO": {"city": "Alghero", "country": "Italia", "lat": 40.6321, "lon": 8.2908}, "AMS": {"city": "Amsterdam", "country": "Paesi Bassi", "lat": 52.3086, "lon": 4.7639}, "ATH": {"city": "Atene", "country": "Grecia", "lat": 37.9364, "lon": 23.9445}, "AUA": {"city": "Oranjestad", "country": "Aruba", "lat": 12.5014, "lon": -70.0152}, "BCN": {"city": "Barcellona", "country": "Spagna", "lat": 41.2971, "lon": 2.0785}, "BGY": {"city": "Bergamo", "country": "Italia", "lat": 45.6739, "lon": 9.7042}, "BON": {"city": "Kralendijk", "country": "Bonaire", "lat": 12.1308, "lon": -68.2685}, "BRI": {"city": "Bari", "country": "Italia", "lat": 41.1389, "lon": 16.7606}, "BUD": {"city": "Budapest", "country": "Ungheria", "lat": 47.4298, "lon": 19.2611}, "CDG": {"city": "Parigi", "country": "Francia", "lat": 49.0097, "lon": 2.5479}, "CGN": {"city": "Colonia", "country": "Germania", "lat": 50.8659, "lon": 7.1427}, "CPH": {"city": "Copenaghen", "country": "Danimarca", "lat": 55.618, "lon": 12.656}, "CTA": {"city": "Catania", "country": "Italia", "lat": 37.4668, "lon": 15.0664}, "HEL": {"city": "Helsinki", "country": "Finlandia", "lat": 60.3172, "lon": 24.9633}, "HER": {"city": "Heraklion", "country": "Grecia", "lat": 35.3397, "lon": 25.1803}, "LIN": {"city": "Milano Linate", "country": "Italia", "lat": 45.4451, "lon": 9.2767}, "LWG": {"city": "Londra Gatwick", "country": "Regno Unito", "lat": 51.1481, "lon": -0.1903}, "MAD": {"city": "Madrid", "country": "Spagna", "lat": 40.4983, "lon": -3.5676}, "MAH": {"city": "Minorca", "country": "Spagna", "lat": 39.8626, "lon": 4.2186}, "MXP": {"city": "Milano Malpensa", "country": "Italia", "lat": 45.6306, "lon": 8.7281}, "NAP": {"city": "Napoli", "country": "Italia", "lat": 40.886, "lon": 14.2908}, "OLB": {"city": "Olbia", "country": "Italia", "lat": 40.8987, "lon": 9.5175}, "OPO": {"city": "Porto", "country": "Portogallo", "lat": 41.2481, "lon": -8.6814}, "PMI": {"city": "Palma di Maiorca", "country": "Spagna", "lat": 39.5517, "lon": 2.7388}, "PMO": {"city": "Palermo", "country": "Italia", "lat": 38.1759, "lon": 13.091}, "PRG": {"city": "Praga", "country": "Rep. Ceca", "lat": 50.1008, "lon": 14.26}, "PSR": {"city": "Pescara", "country": "Italia", "lat": 42.4316, "lon": 14.1811}, "RHO": {"city": "Rodi", "country": "Grecia", "lat": 36.4054, "lon": 28.0862}, "SID": {"city": "Sal", "country": "Capo Verde", "lat": 16.7414, "lon": -22.9494}, "SOF": {"city": "Sofia", "country": "Bulgaria", "lat": 42.6952, "lon": 23.4062}, "SSH": {"city": "Sharm el-Sheikh", "country": "Egitto", "lat": 27.9773, "lon": 34.395}, "SUF": {"city": "Lamezia Terme", "country": "Italia", "lat": 38.9054, "lon": 16.2423}, "TLL": {"city": "Tallinn", "country": "Estonia", "lat": 59.4133, "lon": 24.8328}, "TRF": {"city": "Sandefjord", "country": "Norvegia", "lat": 59.1867, "lon": 10.2586}, "VLC": {"city": "Valencia", "country": "Spagna", "lat": 39.4893, "lon": -0.4816}};
 const MONTHS_IT = ['GEN','FEB','MAR','APR','MAG','GIU','LUG','AGO','SET','OTT','NOV','DIC'];
 const MONTHS_FULL_IT = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+function todayFormatted() {
+  const d = new Date();
+  return `${d.getDate()} ${MONTHS_FULL_IT[d.getMonth()]} ${d.getFullYear()}`;
+}
 const HOME_AIRPORTS = ['BGY','MXP','LIN']; // aeroporti di casa (Milano/Bergamo area)
 
 // --- Collegamento Supabase (sincronizzazione multi-dispositivo) ---
@@ -568,6 +575,8 @@ function getFilteredFlights() {
     const yearsAgo = { '1y': 1, '3y': 3 };
     if (currentFilter === 'thisyear') {
       list = list.filter(f => f.date.slice(0,4) === String(now.getFullYear()));
+    } else if (currentFilter === 'work') {
+      list = list.filter(f => (f.note||'').toUpperCase().includes('X LAVORO'));
     } else if (yearsAgo[currentFilter]) {
       const cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - yearsAgo[currentFilter]);
       list = list.filter(f => new Date(f.date) >= cutoff);
@@ -638,6 +647,7 @@ function renderTimeline() {
         <div class="chip ${currentFilter==='thisyear'?'active':''}" data-filter="thisyear">Quest'anno</div>
         <div class="chip ${currentFilter==='1y'?'active':''}" data-filter="1y">Ultimo anno</div>
         <div class="chip ${currentFilter==='3y'?'active':''}" data-filter="3y">Ultimi 3 anni</div>
+        <div class="chip chip-work ${currentFilter==='work'?'active':''}" data-filter="work">✈ X LAVORO</div>
         <input class="search-input" id="search-box" placeholder="Cerca..." value="${searchTerm}"/>
       </div>
       <div class="add-form" id="add-form">
@@ -674,7 +684,7 @@ function render() {
           <div>
             <div class="brand-title">✈️ I miei voli</div>
             <div class="brand-sub">Flight log personale · ${stats.firstYear}–${stats.lastYear}</div>
-            <div class="sync-badge ${syncMode==='cloud'?'sync-ok':'sync-off'}">${syncMode==='cloud' ? '● Sincronizzato' : '○ Offline — dati non salvati'}</div>
+            <div class="sync-badge ${syncMode==='cloud'?'sync-ok':'sync-off'}">${syncMode==='cloud' ? '● Sincronizzato' : '○ Offline — dati non salvati'} · ${todayFormatted()}</div>
           </div>
         </div>
         <div class="header-right">
