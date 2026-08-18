@@ -1,0 +1,841 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<div id="flighty-root"></div>
+<style>
+  #flighty-root {
+    --bg: #070B14;
+    --bg-panel: #0E1524;
+    --bg-panel-2: #121A2C;
+    --line: rgba(148, 168, 210, 0.14);
+    --gold: #E8B463;
+    --teal: #4FD8C9;
+    --coral: #F0755A;
+    --text: #EAF0FA;
+    --text-dim: #8B99B8;
+    --text-faint: #55628A;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+  }
+  #flighty-root * { box-sizing: border-box; }
+  #flighty-root .mono { font-family: 'IBM Plex Mono', monospace; }
+  #flighty-root .display { font-family: 'Space Grotesk', sans-serif; }
+
+  #flighty-root .bg-grid {
+    position: absolute; inset: 0; pointer-events: none; opacity: .5;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(79,216,201,.10), transparent),
+      radial-gradient(ellipse 60% 40% at 90% 10%, rgba(232,180,99,.06), transparent);
+  }
+
+  #flighty-root .wrap { position: relative; max-width: 1180px; margin: 0 auto; padding: 28px 24px 60px; }
+
+  #flighty-root .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 26px; flex-wrap: wrap; gap: 14px; }
+  #flighty-root .brand { display: flex; align-items: center; gap: 10px; }
+  #flighty-root .brand-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  #flighty-root .brand-sub { font-size: 11.5px; color: var(--text-faint); letter-spacing: .12em; text-transform: uppercase; margin-top: 2px; }
+  #flighty-root .header-right { text-align: right; }
+  #flighty-root .header-right .num { font-size: 30px; font-weight: 700; color: var(--gold); font-family: 'Space Grotesk', sans-serif; line-height:1; }
+  #flighty-root .header-right .lbl { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .1em; margin-top:4px; }
+  #flighty-root .sync-badge { font-size: 10.5px; margin-top: 6px; font-weight: 600; letter-spacing: .03em; }
+  #flighty-root .sync-badge.sync-ok { color: var(--teal); }
+  #flighty-root .sync-badge.sync-off { color: var(--coral); }
+
+  #flighty-root .stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 22px; }
+  #flighty-root .stat-cell { background: var(--bg-panel); padding: 16px 16px; position: relative; }
+  #flighty-root .stat-cell .v { font-size: 24px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.01em; }
+  #flighty-root .stat-cell .l { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .09em; margin-top: 4px; }
+  #flighty-root .stat-cell .accent-teal { color: var(--teal); }
+  #flighty-root .stat-cell .accent-gold { color: var(--gold); }
+  #flighty-root .stat-cell .accent-coral { color: var(--coral); }
+  #flighty-root .stat-cell.upcoming { background: linear-gradient(180deg, rgba(240,117,90,.08), var(--bg-panel)); border-left: 2px solid var(--coral); }
+  #flighty-root .upcoming-next { font-size: 9.5px; color: var(--text-faint); margin-top: 5px; line-height: 1.3; }
+
+  #flighty-root .filter-bar { display:flex; align-items:center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 10px 14px; background: rgba(79,216,201,.06); border: 1px solid rgba(79,216,201,.25); border-radius: 10px; }
+  #flighty-root .filter-bar-label { font-size: 11.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .06em; }
+  #flighty-root .filter-chip { display:inline-flex; align-items:center; gap: 6px; background: var(--teal); color: #061214; font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 14px; cursor: pointer; }
+  #flighty-root .filter-chip b { font-weight: 700; }
+  #flighty-root .filter-clear-all { margin-left: auto; font-size: 11.5px; color: var(--text-faint); text-decoration: underline; cursor: pointer; }
+  #flighty-root .filter-clear-all:hover { color: var(--text); }
+
+  #flighty-root .rank-row.clickable { cursor: pointer; border-radius: 6px; transition: background .12s; }
+  #flighty-root .rank-scroll { max-height: 260px; overflow-y: auto; padding-right: 4px; }
+  #flighty-root .rank-scroll::-webkit-scrollbar { width: 6px; }
+  #flighty-root .rank-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  #flighty-root .rank-row.clickable:hover { background: rgba(255,255,255,.03); }
+  #flighty-root .rank-row.clickable.active { background: rgba(79,216,201,.1); }
+  #flighty-root .rank-row.clickable.active .rank-name { color: var(--teal); font-weight: 600; }
+  #flighty-root .year-bar-col.clickable { cursor: pointer; }
+  #flighty-root .year-bar-col.clickable.active .year-bar { background: linear-gradient(180deg, var(--gold), rgba(232,180,99,.3)); }
+  #flighty-root .year-bar-col.clickable.active .year-bar-lbl { color: var(--gold); font-weight: 600; }
+
+  #flighty-root .map-toggle { display:flex; gap: 6px; }
+  #flighty-root .map-toggle button { background: var(--bg-panel-2); border: 1px solid var(--line); color: var(--text-dim); font-size: 11.5px; padding: 6px 11px; border-radius: 16px; cursor: pointer; transition: all .15s; }
+  #flighty-root .map-toggle button:hover { color: var(--text); }
+  #flighty-root .map-toggle button.active { background: var(--gold); border-color: var(--gold); color: #1a1204; font-weight: 600; }
+
+  #flighty-root .pass-future { border-color: rgba(240,117,90,.4); background: linear-gradient(180deg, rgba(240,117,90,.05), var(--bg-panel-2)); }
+  #flighty-root .pass-tag-future { background: rgba(240,117,90,.22); color: var(--coral); font-weight: 600; }
+  #flighty-root .form-hint { font-size: 11px; color: var(--text-faint); margin-top: 10px; }
+
+  #flighty-root .panel { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+  #flighty-root .panel-head { display:flex; justify-content: space-between; align-items:center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;}
+  #flighty-root .panel-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; color: var(--text-dim); display:flex; align-items:center; gap:8px; }
+  #flighty-root .panel-title .dot { width:6px; height:6px; border-radius:50%; background: var(--teal); box-shadow: 0 0 8px var(--teal); }
+
+  #flighty-root .map-box { width: 100%; height: 480px; border-radius: 10px; overflow: hidden; background: #0A0F1C; position: relative; }
+  #flighty-root #leaflet-map { width: 100%; height: 100%; }
+  #flighty-root .map-legend { display:flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-faint); }
+  #flighty-root .map-legend span { display:inline-flex; align-items:center; gap:6px; }
+  #flighty-root .map-legend .sw { width: 8px; height: 8px; border-radius: 50%; display:inline-block; }
+  /* Leaflet dark theme overrides */
+  #flighty-root .leaflet-container { background: #0A0F1C; font-family: 'Inter', sans-serif; }
+  #flighty-root .leaflet-control-zoom a { background: #121A2C !important; color: #EAF0FA !important; border-color: rgba(148,168,210,0.14) !important; }
+  #flighty-root .leaflet-control-zoom a:hover { background: #1a2338 !important; }
+  #flighty-root .leaflet-popup-content-wrapper { background: #0E1524 !important; color: #EAF0FA !important; border: 1px solid rgba(148,168,210,0.14); border-radius: 8px !important; }
+  #flighty-root .leaflet-popup-tip { background: #0E1524 !important; }
+  #flighty-root .leaflet-popup-content { font-size: 12.5px !important; margin: 10px 12px !important; }
+  #flighty-root .leaflet-control-attribution { background: rgba(10,15,28,0.75) !important; color: #55628A !important; font-size: 9.5px !important; }
+  #flighty-root .leaflet-control-attribution a { color: #8B99B8 !important; }
+
+  #flighty-root .cols { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 20px; }
+  @media (max-width: 860px) { #flighty-root .cols { grid-template-columns: 1fr; } }
+
+  #flighty-root .rank-row { display:flex; align-items:center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  #flighty-root .rank-row:last-child { border-bottom: none; }
+  #flighty-root .rank-idx { width: 18px; font-size: 11px; color: var(--text-faint); font-family: 'IBM Plex Mono', monospace; flex-shrink:0; }
+  #flighty-root .rank-name { flex: 1; font-size: 13px; min-width: 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #flighty-root .rank-bar-track { width: 80px; height: 5px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; flex-shrink:0; }
+  #flighty-root .rank-bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--gold)); border-radius: 3px; }
+  #flighty-root .rank-val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); width: 26px; text-align: right; flex-shrink:0; }
+
+  #flighty-root .year-chart { display: flex; align-items: flex-end; gap: 5px; height: 110px; padding-top: 10px; overflow-x: auto; }
+  #flighty-root .year-bar-col { flex:1; min-width: 22px; display:flex; flex-direction:column; align-items:center; justify-content: flex-end; height: 100%; }
+  #flighty-root .year-bar { width: 100%; max-width: 24px; background: linear-gradient(180deg, var(--teal), rgba(79,216,201,.25)); border-radius: 4px 4px 0 0; min-height: 3px; }
+  #flighty-root .year-bar-lbl { font-size: 9.5px; color: var(--text-faint); margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
+  #flighty-root .year-bar-val { font-size: 9.5px; color: var(--text-dim); margin-bottom: 3px; font-family: 'IBM Plex Mono', monospace; }
+
+  #flighty-root .timeline-controls { display:flex; gap:8px; margin-bottom: 14px; flex-wrap: wrap; align-items:center; }
+  #flighty-root .chip { padding: 6px 12px; border-radius: 20px; border: 1px solid var(--line); background: var(--bg-panel-2); font-size: 12px; color: var(--text-dim); cursor: pointer; transition: all .15s; }
+  #flighty-root .chip:hover { border-color: var(--teal); color: var(--text); }
+  #flighty-root .chip.active { background: var(--teal); border-color: var(--teal); color: #061214; font-weight: 600; }
+  #flighty-root .search-input { margin-left: auto; background: var(--bg-panel-2); border: 1px solid var(--line); color: var(--text); padding: 7px 12px; border-radius: 20px; font-size: 12px; width: 160px; }
+  #flighty-root .search-input:focus { outline:none; border-color: var(--teal); }
+
+  #flighty-root .pass-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; max-height: 720px; overflow-y: auto; padding-right: 6px; align-content: start; }
+  #flighty-root .pass-list::-webkit-scrollbar { width: 6px; }
+  #flighty-root .pass-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: fit-content; }
+  #flighty-root .pass-main { padding: 16px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  #flighty-root .pass-route { display:flex; align-items:center; gap: 10px; }
+  #flighty-root .pass-code { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: .02em; flex-shrink:0; }
+  #flighty-root .pass-arrow { color: var(--teal); font-size: 12px; flex:1; display:flex; align-items:center; gap:6px; min-width: 20px;}
+  #flighty-root .pass-arrow .ln { flex:1; height:1px; background: repeating-linear-gradient(90deg, var(--text-faint) 0 4px, transparent 4px 8px); min-width: 10px;}
+  #flighty-root .pass-cities { font-size: 11.5px; color: var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #flighty-root .pass-meta { display:flex; gap: 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
+  #flighty-root .pass-meta b { color: var(--text); font-weight: 500; }
+  #flighty-root .pass-stub { width: 82px; border-left: 1px dashed var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 10px 6px; background: rgba(255,255,255,.015); position: relative; flex-shrink:0; }
+  #flighty-root .pass-stub .date-d { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; color: var(--gold); line-height:1; }
+  #flighty-root .pass-stub .date-m { font-size: 9.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+  #flighty-root .pass-stub .date-y { font-size: 9px; color: var(--text-faint); margin-top: 1px; }
+  #flighty-root .pass-stub::before, #flighty-root .pass-stub::after { content:''; position:absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); left: -6px; }
+  #flighty-root .pass-stub::before { top: -6px; }
+  #flighty-root .pass-stub::after { bottom: -6px; }
+  #flighty-root .pass-tag { font-size: 9.5px; padding: 2px 7px; border-radius: 10px; background: rgba(240,117,90,.15); color: var(--coral); display:inline-block; width: fit-content; }
+  #flighty-root .pass-del { position:absolute; top:6px; right:6px; background:none; border:none; color: var(--text-faint); cursor:pointer; font-size: 14px; padding: 2px 6px; border-radius:4px; line-height:1; }
+  #flighty-root .pass-del:hover { color: var(--coral); background: rgba(240,117,90,.1); }
+
+  #flighty-root .empty-note { text-align:center; color: var(--text-faint); font-size: 12.5px; padding: 20px 0; }
+
+  #flighty-root .add-btn { display:flex; align-items:center; gap:8px; background: var(--teal); color: #061214; border:none; padding: 10px 16px; border-radius: 9px; font-weight: 600; font-size: 13px; cursor:pointer; transition: transform .1s; }
+  #flighty-root .add-btn:hover { transform: translateY(-1px); }
+  #flighty-root .add-form { display: none; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
+  #flighty-root .add-form.open { display: block; }
+  #flighty-root .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; }
+  #flighty-root .field label { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .07em; display:block; margin-bottom: 5px; }
+  #flighty-root .field input, #flighty-root .field select { width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text); padding: 9px 10px; border-radius: 7px; font-size: 13px; font-family: inherit; }
+  #flighty-root .field input:focus, #flighty-root .field select:focus { outline: none; border-color: var(--teal); }
+  #flighty-root .form-actions { display:flex; gap: 10px; margin-top: 14px; align-items: center; }
+  #flighty-root .btn-primary { background: var(--gold); color: #1a1204; border:none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor:pointer; }
+  #flighty-root .btn-ghost { background: transparent; color: var(--text-faint); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; font-size: 13px; cursor:pointer; }
+  #flighty-root .form-msg { font-size: 12px; color: var(--teal); margin-left: 6px; }
+
+  #flighty-root .footer-note { text-align:center; font-size: 11px; color: var(--text-faint); margin-top: 24px; }
+  #flighty-root .loading-state { text-align:center; padding: 80px 20px; color: var(--text-faint); font-size: 13px; }
+  #flighty-root .tooltip-airport { position:absolute; pointer-events:none; background: #0A0F1C; border:1px solid var(--line); padding: 5px 9px; border-radius: 6px; font-size: 11px; color: var(--text); display:none; white-space:nowrap; z-index: 10; }
+</style>
+
+<script>
+(function(){
+
+const SEED_FLIGHTS = [{"date": "2003-07-06", "company": "Meridiana", "from": "BGY", "fromCity": "Bergamo", "to": "OLB", "toCity": "Olbia", "aircraft": "MD-82", "tail": null, "km": 529.0, "price": null, "note": null, "extra": null}, {"date": "2003-07-13", "company": "Meridiana", "from": "OLB", "fromCity": "Olbia", "to": "BGY", "toCity": "Bergamo", "aircraft": "MD-82", "tail": null, "km": 529.0, "price": null, "note": null, "extra": null}, {"date": "2013-05-02", "company": "Easyjet", "from": "MXP", "fromCity": "Ferno, Varese", "to": "LWG", "toCity": "Londra", "aircraft": "A319", "tail": null, "km": 898.0, "price": null, "note": null, "extra": null}, {"date": "2013-05-06", "company": "Easyjet", "from": "LWG", "fromCity": "Londra", "to": "MXP", "toCity": "Ferno, Varese", "aircraft": "A319", "tail": null, "km": 898.0, "price": null, "note": null, "extra": null}, {"date": "2016-06-19", "company": "Meridiana", "from": "BGY", "fromCity": "Bergamo", "to": "MAH", "toCity": "Mahon", "aircraft": "B737-800", "tail": null, "km": 784.0, "price": null, "note": null, "extra": null}, {"date": "2016-06-26", "company": "Meridiana", "from": "MAH", "fromCity": "Mahon", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": null, "km": 784.0, "price": null, "note": null, "extra": null}, {"date": "2017-07-16", "company": "Meridiana", "from": "BGY", "fromCity": "Bergamo", "to": "PMI", "toCity": "Mallorca", "aircraft": "B737-800", "tail": null, "km": 887.0, "price": null, "note": null, "extra": null}, {"date": "2017-07-23", "company": "Meridiana", "from": "PMI", "fromCity": "Mallorca", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": null, "km": 887.0, "price": null, "note": null, "extra": null}, {"date": "2018-07-14", "company": "Neos", "from": "BGY", "fromCity": "Bergamo", "to": "HER", "toCity": "Heraklion", "aircraft": "B737-800", "tail": "I-NEOU", "km": 1735.0, "price": null, "note": null, "extra": null}, {"date": "2018-07-21", "company": "Neos", "from": "HER", "fromCity": "Heraklion", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "I-NEOU", "km": 1735.0, "price": null, "note": null, "extra": null}, {"date": "2019-06-25", "company": "Aegean", "from": "BGY", "fromCity": "Bergamo", "to": "RHO", "toCity": "Rodi", "aircraft": "A320", "tail": "SX-DVK", "km": 1850.0, "price": null, "note": null, "extra": null}, {"date": "2019-07-02", "company": "Alba Star", "from": "RHO", "fromCity": "Rodi", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "EC-NAB", "km": 1850.0, "price": null, "note": null, "extra": null}, {"date": "2019-12-27", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "CGN", "toCity": "Colonia, Germania", "aircraft": "B737-800", "tail": null, "km": 610.0, "price": null, "note": null, "extra": null}, {"date": "2019-12-30", "company": "Ryanair", "from": "CGN", "fromCity": "Colonia, Germania", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "9H-QBO", "km": 610.0, "price": null, "note": null, "extra": null}, {"date": "2021-08-25", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "BCN", "toCity": "Barcellona", "aircraft": "B737-800", "tail": "EI-EBL", "km": 783.0, "price": 15.99, "note": null, "extra": null}, {"date": "2021-09-01", "company": "Ryanair", "from": "BCN", "fromCity": "Barcellona", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "EI-DHX", "km": 783.0, "price": 15.99, "note": null, "extra": null}, {"date": "2021-12-30", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "PSR", "toCity": "Pescara", "aircraft": "B737-800", "tail": "9H-QDY", "km": 508.0, "price": 7.989999999999999, "note": null, "extra": null}, {"date": "2022-01-01", "company": "Ryanair", "from": "PSR", "fromCity": "Pescara", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "9H-QCM", "km": 508.0, "price": 7.989999999999999, "note": null, "extra": null}, {"date": "2022-03-03", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "NAP", "toCity": "Napoli", "aircraft": "B737 Max 8-200", "tail": "9H-VUG", "km": 648.0, "price": 14.99, "note": null, "extra": null}, {"date": "2022-03-03", "company": "Ryanair", "from": "NAP", "fromCity": "Napoli", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8-200", "tail": "9H-VUR", "km": 648.0, "price": 14.99, "note": null, "extra": null}, {"date": "2022-08-02", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "BRI", "toCity": "Bari, BA", "aircraft": "B737-800", "tail": "9H-QBF", "km": 761.0, "price": 17.86, "note": null, "extra": null}, {"date": "2022-08-05", "company": "Ryanair", "from": "BRI", "fromCity": "Bari, BA", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8-200", "tail": "9H-VUH", "km": 761.0, "price": 14.99, "note": null, "extra": null}, {"date": "2022-08-13", "company": "KLM", "from": "MXP", "fromCity": "Ferno, Varese", "to": "AMS", "toCity": "Amsterdam", "aircraft": "B737-800", "tail": "PH-BHU", "km": 796.0, "price": 46.0, "note": null, "extra": null}, {"date": "2022-08-13", "company": "KLM", "from": "AMS", "fromCity": "Amsterdam", "to": "AUA", "toCity": "Oranjestad", "aircraft": "B777-300", "tail": "PH-BVA", "km": 7878.0, "price": 454.75, "note": null, "extra": null}, {"date": "2022-08-22", "company": "KLM", "from": "AUA", "fromCity": "Oranjestad", "to": "BON", "toCity": "Kralendijk", "aircraft": "B777-300", "tail": "PH-BVA", "km": 192.0, "price": 10.93, "note": null, "extra": null}, {"date": "2022-08-22", "company": "KLM", "from": "BON", "fromCity": "Kralendijk", "to": "AMS", "toCity": "Amsterdam", "aircraft": "B777-300", "tail": "PH-BVA", "km": 7793.0, "price": 444.0, "note": null, "extra": null}, {"date": "2022-08-23", "company": "KLM", "from": "AMS", "fromCity": "Amsterdam", "to": "LIN", "toCity": "Linate", "aircraft": "B737-900", "tail": "PH-BXR", "km": 830.0, "price": 48.0, "note": null, "extra": null}, {"date": "2023-05-24", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "BCN", "toCity": "Barcellona", "aircraft": "B737-800", "tail": "9H-QCP", "km": 783.0, "price": 16.99, "note": null, "extra": null}, {"date": "2023-05-28", "company": "Ryanair", "from": "BCN", "fromCity": "Barcellona", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8-200", "tail": "9H-VUV", "km": 783.0, "price": 24.64, "note": null, "extra": null}, {"date": "2023-07-22", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "PMO", "toCity": "Palermo", "aircraft": "B737 Max 8-200", "tail": "9H-VUE", "km": 878.0, "price": 116.73, "note": null, "extra": null}, {"date": "2023-07-29", "company": "Ryanair", "from": "PMO", "fromCity": "Palermo", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8-200", "tail": "9H-VUB", "km": 878.0, "price": 47.67, "note": null, "extra": null}, {"date": "2023-08-01", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "AHO", "toCity": "Alghero", "aircraft": "B737-800", "tail": "9H-QDZ", "km": 572.0, "price": 43.9, "note": null, "extra": null}, {"date": "2023-08-04", "company": "Ryanair", "from": "AHO", "fromCity": "Alghero", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "9H-QDU", "km": 572.0, "price": 20.57, "note": null, "extra": null}, {"date": "2024-03-02", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "MAD", "toCity": "Madrid", "aircraft": "B737 Max 8-200", "tail": "9H-VVL", "km": 1219.0, "price": 27.52, "note": null, "extra": null}, {"date": "2024-03-05", "company": "Ryanair", "from": "MAD", "fromCity": "Madrid", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8-200", "tail": "9H-VUV", "km": 1219.0, "price": 26.11, "note": null, "extra": null}, {"date": "2024-05-04", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "TRF", "toCity": "Sandefjord", "aircraft": "B737 Max 8-200", "tail": "9H-VVN", "km": 1503.0, "price": 21.99, "note": null, "extra": null}, {"date": "2024-05-06", "company": "Ryanair", "from": "TRF", "fromCity": "Sandefjord", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8-200", "tail": "9H-VVS", "km": 1503.0, "price": 15.0, "note": null, "extra": null}, {"date": "2024-05-29", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "PMO", "toCity": "Palermo", "aircraft": "B737-800", "tail": "9H-QAO", "km": 878.0, "price": null, "note": "X LAVORO", "extra": 205.31}, {"date": "2024-05-30", "company": "Ryanair", "from": "PMO", "fromCity": "Palermo", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8-200", "tail": "9H-VVM", "km": 878.0, "price": null, "note": "X LAVORO", "extra": 50.76}, {"date": "2024-07-06", "company": "Cabo Verde Airlines", "from": "BGY", "fromCity": "Bergamo", "to": "SID", "toCity": "Espargos", "aircraft": "B737 Max 8", "tail": "D4-CCJ", "km": 4414.0, "price": 250.0, "note": null, "extra": null}, {"date": "2024-07-13", "company": "Cabo Verde Airlines", "from": "SID", "fromCity": "Espargos", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8", "tail": "D4-CCJ", "km": 4414.0, "price": 250.0, "note": null, "extra": null}, {"date": "2024-08-07", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "CTA", "toCity": "Catania", "aircraft": "B737 Max 8-200", "tail": "9H-VUW", "km": 1014.0, "price": 83.06, "note": null, "extra": null}, {"date": "2024-08-14", "company": "Ryanair", "from": "CTA", "fromCity": "Catania", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "9H-QET", "km": 1014.0, "price": 62.69, "note": null, "extra": null}, {"date": "2024-10-05", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "ATH", "toCity": "Atene", "aircraft": "B737-800", "tail": "9H-QET", "km": 1457.0, "price": 21.99, "note": null, "extra": null}, {"date": "2024-10-07", "company": "WizzAir", "from": "ATH", "fromCity": "Atene", "to": "MXP", "toCity": "Ferno, Varese", "aircraft": "A321Neo", "tail": "9H-WNN", "km": 1522.0, "price": 55.9, "note": null, "extra": null}, {"date": "2024-11-18", "company": "Ita", "from": "LIN", "fromCity": "Linate", "to": "SUF", "toCity": "Lamezia", "aircraft": "A320", "tail": "EI-DSW", "km": 926.0, "price": null, "note": "X LAVORO", "extra": 135.75}, {"date": "2024-11-19", "company": "Ryanair", "from": "SUF", "fromCity": "Lamezia", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "9H-QBB", "km": 924.0, "price": null, "note": "X LAVORO", "extra": 115.49}, {"date": "2024-11-29", "company": "Easyjet", "from": "MXP", "fromCity": "Malpensa", "to": "CDG", "toCity": "Parigi", "aircraft": "A320", "tail": "OE-ICK", "km": 595.0, "price": 36.49, "note": null, "extra": null}, {"date": "2024-12-02", "company": "Easyjet", "from": "CDG", "fromCity": "Parigi", "to": "MXP", "toCity": "Ferno, Varese", "aircraft": "A320", "tail": "OE-INE", "km": 595.0, "price": 47.37, "note": null, "extra": null}, {"date": "2024-12-10", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "TLL", "toCity": "Tallin", "aircraft": "B737 Max 8-200", "tail": "EI-IJN", "km": 1830.0, "price": 24.99, "note": null, "extra": null}, {"date": "2024-12-14", "company": "Finnair", "from": "HEL", "fromCity": "Helsinky", "to": "CPH", "toCity": "Copenaghen", "aircraft": "A320", "tail": "OY-JRS", "km": 892.0, "price": 69.0, "note": null, "extra": null}, {"date": "2024-12-16", "company": "Ryanair", "from": "CPH", "fromCity": "Copenaghen", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8-200", "tail": "EI-IHT", "km": 1127.0, "price": 45.0, "note": null, "extra": null}, {"date": "2025-01-07", "company": "Ita", "from": "LIN", "fromCity": "Linate", "to": "CTA", "toCity": "Catania", "aircraft": "BCS3", "tail": "EI-HHS", "km": 1010.0, "price": null, "note": "X LAVORO", "extra": 120.0}, {"date": "2025-01-10", "company": "Ryanair", "from": "SUF", "fromCity": "Lamezia", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "9H-QEJ", "km": 924.0, "price": null, "note": "X LAVORO", "extra": 79.08}, {"date": "2025-05-27", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "OPO", "toCity": "Porto", "aircraft": "B737-800", "tail": "EI-DYO", "km": 1558.0, "price": 23.49, "note": null, "extra": null}, {"date": "2025-05-29", "company": "Ryanair", "from": "OPO", "fromCity": "Porto", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "EI-ENG", "km": 1558.0, "price": 21.99, "note": null, "extra": null}, {"date": "2025-08-10", "company": "Ryanair", "from": "MXP", "fromCity": "Ferno, Varese", "to": "BUD", "toCity": "Budapest", "aircraft": "B737-800", "tail": "EI-EKH", "km": 831.0, "price": 63.99, "note": "Credito Welfare", "extra": null}, {"date": "2025-08-13", "company": "Ryanair", "from": "BUD", "fromCity": "Budapest", "to": "MXP", "toCity": "Ferno, Varese", "aircraft": "B737-800", "tail": "SP-RKD", "km": 831.0, "price": 34.99, "note": "Credito Welfare", "extra": null}, {"date": "2025-09-02", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "BRI", "toCity": "Bari, BA", "aircraft": "B737-800", "tail": "EI-EBC", "km": 761.0, "price": null, "note": "X LAVORO", "extra": 56.09}, {"date": "2025-09-03", "company": "Ita", "from": "BRI", "fromCity": "Bari, BA", "to": "LIN", "toCity": "Linate", "aircraft": "A319", "tail": "EI-IMN", "km": 773.0, "price": null, "note": "X LAVORO", "extra": 250.0}, {"date": "2025-09-12", "company": "WizzAir", "from": "MXP", "fromCity": "Ferno, Varese", "to": "SSH", "toCity": "Sharm el-Sheikh", "aircraft": "A321Neo", "tail": "9H-WNI", "km": 2989.0, "price": 55.99, "note": null, "extra": null}, {"date": "2025-09-20", "company": "WizzAir", "from": "SSH", "fromCity": "Sharm el-Sheikh", "to": "MXP", "toCity": "Ferno, Varese", "aircraft": "A321Neo", "tail": "9H-WMC", "km": 2989.0, "price": 55.99, "note": null, "extra": null}, {"date": "2025-11-16", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "PRG", "toCity": "Praga, CZ", "aircraft": "B737-800", "tail": "EI-EBN", "km": 600.0, "price": 21.99, "note": null, "extra": null}, {"date": "2025-11-19", "company": "Ryanair", "from": "PRG", "fromCity": "Praga, CZ", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8-200", "tail": "9H-VUU", "km": 600.0, "price": 21.99, "note": null, "extra": null}, {"date": "2025-12-13", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "SOF", "toCity": "Sofia", "aircraft": "B737 Max 8-200", "tail": "EI-IFV", "km": 1141.0, "price": 14.99, "note": null, "extra": null}, {"date": "2025-12-15", "company": "Ryanair", "from": "SOF", "fromCity": "Sofia", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737-800", "tail": "SP-RKK", "km": 1141.0, "price": 14.99, "note": null, "extra": null}, {"date": "2026-02-04", "company": "Ita", "from": "LIN", "fromCity": "Linate", "to": "BRI", "toCity": "Bari, BA", "aircraft": "A320Neo", "tail": "EI-HOJ", "km": 773.0, "price": null, "note": "X LAVORO", "extra": 199.32}, {"date": "2026-02-06", "company": "Ita", "from": "BRI", "fromCity": "Bari, BA", "to": "LIN", "toCity": "Linate", "aircraft": "A320", "tail": "EI-DSW", "km": 773.0, "price": null, "note": "X LAVORO", "extra": 199.32}, {"date": "2026-02-07", "company": "Ryanair", "from": "BGY", "fromCity": "Bergamo", "to": "VLC", "toCity": "Valencia", "aircraft": "B737 Max 8-200", "tail": "9H-VUI", "km": 1078.0, "price": 14.99, "note": null, "extra": null}, {"date": "2026-02-09", "company": "Ryanair", "from": "VLC", "fromCity": "Valencia", "to": "BGY", "toCity": "Bergamo", "aircraft": "B737 Max 8-200", "tail": "EI-HEY", "km": 1078.0, "price": 47.91, "note": null, "extra": null}];
+const AIRPORTS = {"AHO": {"city": "Alghero", "country": "Italia", "lat": 40.6321, "lon": 8.2908}, "AMS": {"city": "Amsterdam", "country": "Paesi Bassi", "lat": 52.3086, "lon": 4.7639}, "ATH": {"city": "Atene", "country": "Grecia", "lat": 37.9364, "lon": 23.9445}, "AUA": {"city": "Oranjestad", "country": "Aruba", "lat": 12.5014, "lon": -70.0152}, "BCN": {"city": "Barcellona", "country": "Spagna", "lat": 41.2971, "lon": 2.0785}, "BGY": {"city": "Bergamo", "country": "Italia", "lat": 45.6739, "lon": 9.7042}, "BON": {"city": "Kralendijk", "country": "Bonaire", "lat": 12.1308, "lon": -68.2685}, "BRI": {"city": "Bari", "country": "Italia", "lat": 41.1389, "lon": 16.7606}, "BUD": {"city": "Budapest", "country": "Ungheria", "lat": 47.4298, "lon": 19.2611}, "CDG": {"city": "Parigi", "country": "Francia", "lat": 49.0097, "lon": 2.5479}, "CGN": {"city": "Colonia", "country": "Germania", "lat": 50.8659, "lon": 7.1427}, "CPH": {"city": "Copenaghen", "country": "Danimarca", "lat": 55.618, "lon": 12.656}, "CTA": {"city": "Catania", "country": "Italia", "lat": 37.4668, "lon": 15.0664}, "HEL": {"city": "Helsinki", "country": "Finlandia", "lat": 60.3172, "lon": 24.9633}, "HER": {"city": "Heraklion", "country": "Grecia", "lat": 35.3397, "lon": 25.1803}, "LIN": {"city": "Milano Linate", "country": "Italia", "lat": 45.4451, "lon": 9.2767}, "LWG": {"city": "Londra Gatwick", "country": "Regno Unito", "lat": 51.1481, "lon": -0.1903}, "MAD": {"city": "Madrid", "country": "Spagna", "lat": 40.4983, "lon": -3.5676}, "MAH": {"city": "Minorca", "country": "Spagna", "lat": 39.8626, "lon": 4.2186}, "MXP": {"city": "Milano Malpensa", "country": "Italia", "lat": 45.6306, "lon": 8.7281}, "NAP": {"city": "Napoli", "country": "Italia", "lat": 40.886, "lon": 14.2908}, "OLB": {"city": "Olbia", "country": "Italia", "lat": 40.8987, "lon": 9.5175}, "OPO": {"city": "Porto", "country": "Portogallo", "lat": 41.2481, "lon": -8.6814}, "PMI": {"city": "Palma di Maiorca", "country": "Spagna", "lat": 39.5517, "lon": 2.7388}, "PMO": {"city": "Palermo", "country": "Italia", "lat": 38.1759, "lon": 13.091}, "PRG": {"city": "Praga", "country": "Rep. Ceca", "lat": 50.1008, "lon": 14.26}, "PSR": {"city": "Pescara", "country": "Italia", "lat": 42.4316, "lon": 14.1811}, "RHO": {"city": "Rodi", "country": "Grecia", "lat": 36.4054, "lon": 28.0862}, "SID": {"city": "Sal", "country": "Capo Verde", "lat": 16.7414, "lon": -22.9494}, "SOF": {"city": "Sofia", "country": "Bulgaria", "lat": 42.6952, "lon": 23.4062}, "SSH": {"city": "Sharm el-Sheikh", "country": "Egitto", "lat": 27.9773, "lon": 34.395}, "SUF": {"city": "Lamezia Terme", "country": "Italia", "lat": 38.9054, "lon": 16.2423}, "TLL": {"city": "Tallinn", "country": "Estonia", "lat": 59.4133, "lon": 24.8328}, "TRF": {"city": "Sandefjord", "country": "Norvegia", "lat": 59.1867, "lon": 10.2586}, "VLC": {"city": "Valencia", "country": "Spagna", "lat": 39.4893, "lon": -0.4816}};
+const MONTHS_IT = ['GEN','FEB','MAR','APR','MAG','GIU','LUG','AGO','SET','OTT','NOV','DIC'];
+const MONTHS_FULL_IT = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const HOME_AIRPORTS = ['BGY','MXP','LIN']; // aeroporti di casa (Milano/Bergamo area)
+
+// --- Collegamento Supabase (sincronizzazione multi-dispositivo) ---
+const SUPABASE_URL = 'https://tnizhjtjhkoglwjmldsn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRuaXpoanRqaGtvZ2x3am1sZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwMjkyODAsImV4cCI6MjEwMjYwNTI4MH0._VtOeIh3rY8qp0uwYJ7t7nRktIfoC4dDGNzp29t3sro';
+const supabaseClient = (typeof window.supabase !== 'undefined')
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+const AIRCRAFT_ICON = '✈';
+
+// --- Protezione PIN per modifiche (aggiunta/eliminazione voli) ---
+const PIN_HASH = '07361d83fcd20a07f7b0daa99765793f088908ef70c715ee3c0b6821e31f2dd0';
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+let pinUnlockedUntil = 0; // timestamp: once entered correctly, stays unlocked for a short session window
+async function requirePin() {
+  if (Date.now() < pinUnlockedUntil) return true;
+  const entered = prompt('Inserisci il PIN per modificare i voli:');
+  if (entered === null) return false;
+  const hash = await sha256Hex(entered.trim());
+  if (hash === PIN_HASH) {
+    pinUnlockedUntil = Date.now() + 10 * 60 * 1000; // resta sbloccato 10 minuti
+    return true;
+  }
+  alert('PIN errato.');
+  return false;
+}
+const root = document.getElementById('flighty-root');
+root.innerHTML = '<div class="loading-state">Carico i tuoi voli…</div>';
+
+let flights = [];
+let currentFilter = 'all';   // quick date-range chip on timeline
+let searchTerm = '';
+let globalFilters = { year: null, airport: null, company: null, aircraft: null };
+let mapStyle = 'satellite'; // 'satellite' | 'dark'
+let syncMode = 'cloud'; // 'cloud' | 'offline'
+const TODAY_STR = new Date().toISOString().slice(0,10);
+
+function rowToFlight(row) {
+  return {
+    id: row.id, date: row.date, company: row.company,
+    from: row.from_code, fromCity: row.from_city,
+    to: row.to_code, toCity: row.to_city,
+    aircraft: row.aircraft, tail: row.tail,
+    km: row.km, price: row.price, note: row.note, extra: row.extra
+  };
+}
+
+function flightToRow(f) {
+  return {
+    date: f.date, company: f.company,
+    from_code: f.from, from_city: f.fromCity,
+    to_code: f.to, to_city: f.toCity,
+    aircraft: f.aircraft, tail: f.tail || null,
+    km: f.km, price: f.price, note: f.note, extra: f.extra
+  };
+}
+
+async function loadFlights() {
+  if (!supabaseClient) {
+    flights = SEED_FLIGHTS.slice();
+    syncMode = 'offline';
+    render();
+    return;
+  }
+  try {
+    const { data, error } = await supabaseClient.from('flights').select('*').order('date', { ascending: true });
+    if (error) throw error;
+    flights = (data || []).map(rowToFlight);
+    syncMode = 'cloud';
+  } catch (e) {
+    console.error('Errore caricamento da Supabase', e);
+    flights = SEED_FLIGHTS.slice();
+    syncMode = 'offline';
+  }
+  render();
+}
+
+async function insertFlightRemote(flight) {
+  if (!supabaseClient) throw new Error('offline');
+  const { data, error } = await supabaseClient.from('flights').insert([flightToRow(flight)]).select();
+  if (error) throw error;
+  return rowToFlight(data[0]);
+}
+
+async function deleteFlightRemote(id) {
+  if (!supabaseClient || !id) return;
+  const { error } = await supabaseClient.from('flights').delete().eq('id', id);
+  if (error) throw error;
+}
+
+function airportInfo(code) {
+  return AIRPORTS[code] || { city: code, country: '', lat: null, lon: null };
+}
+
+function fmtNum(n, decimals) {
+  decimals = decimals || 0;
+  return (n||0).toLocaleString('it-IT', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function isFlown(f) { return f.date <= TODAY_STR; }
+function isFuture(f) { return f.date > TODAY_STR; }
+
+// Apply globalFilters to a list. If excludeDim given, skip that dimension's check
+// (so a chart can show its own full set of options while respecting the others).
+function applyGlobalFilters(list, excludeDim) {
+  return list.filter(f => {
+    if (globalFilters.year && excludeDim !== 'year' && f.date.slice(0,4) !== globalFilters.year) return false;
+    if (globalFilters.airport && excludeDim !== 'airport' && f.from !== globalFilters.airport && f.to !== globalFilters.airport) return false;
+    if (globalFilters.company && excludeDim !== 'company' && f.company !== globalFilters.company) return false;
+    if (globalFilters.aircraft && excludeDim !== 'aircraft' && f.aircraft !== globalFilters.aircraft) return false;
+    return true;
+  });
+}
+
+function hasActiveFilters() {
+  return !!(globalFilters.year || globalFilters.airport || globalFilters.company || globalFilters.aircraft);
+}
+
+function toggleFilter(dim, value) {
+  globalFilters[dim] = (globalFilters[dim] === value) ? null : value;
+  render();
+}
+
+function clearAllFilters() {
+  globalFilters = { year: null, airport: null, company: null, aircraft: null };
+  render();
+}
+
+function computeStats(baseList) {
+  const flownList = baseList.filter(isFlown);
+  const futureList = baseList.filter(isFuture);
+
+  const totalFlights = flownList.length;
+  const totalKm = flownList.reduce((s,f) => s + (f.km || 0), 0);
+  const avgSpeedKmh = 780;
+  const taxiMinutesPerFlight = 25;
+  const totalMinutes = flownList.reduce((s,f) => s + ((f.km||0)/avgSpeedKmh*60 + taxiMinutesPerFlight), 0);
+  const totalHours = totalMinutes/60;
+
+  const airportSet = new Set();
+  const countrySet = new Set();
+  flownList.forEach(f => {
+    airportSet.add(f.from); airportSet.add(f.to);
+    const ai = airportInfo(f.from), bi = airportInfo(f.to);
+    if (ai.country) countrySet.add(ai.country);
+    if (bi.country) countrySet.add(bi.country);
+  });
+
+  const earthCircumference = 40075;
+  const timesAroundEarth = totalKm / earthCircumference;
+
+  const dates = flownList.map(f=>f.date).sort();
+  const firstYear = dates.length ? dates[0].slice(0,4) : '-';
+  const lastYear = dates.length ? dates[dates.length-1].slice(0,4) : '-';
+
+  const nextFlight = futureList.slice().sort((a,b)=>a.date.localeCompare(b.date))[0] || null;
+
+  return {
+    totalFlights, totalKm, totalHours, airportSet, countrySet,
+    firstYear, lastYear, timesAroundEarth,
+    upcomingCount: futureList.length, nextFlight
+  };
+}
+
+function countBy(list, keyFn) {
+  const counts = {};
+  list.forEach(f => {
+    const k = keyFn(f);
+    if (!k) return;
+    counts[k] = (counts[k]||0) + 1;
+  });
+  return counts;
+}
+
+function project(lat, lon, bbox, W, H, pad) {
+  const x = pad + (lon - bbox.minLon) / (bbox.maxLon - bbox.minLon) * (W - 2*pad);
+  const y = pad + (bbox.maxLat - lat) / (bbox.maxLat - bbox.minLat) * (H - 2*pad);
+  return [x, y];
+}
+
+function initLeafletMap(mapFlights) {
+  const mapEl = document.getElementById('leaflet-map');
+  if (!mapEl || typeof L === 'undefined') return;
+  if (window.__flightyMap) {
+    try { window.__flightyMap.remove(); } catch(e) {}
+    window.__flightyMap = null;
+  }
+  const usedCodes = new Set();
+  mapFlights.forEach(f => { usedCodes.add(f.from); usedCodes.add(f.to); });
+  const pts = [...usedCodes].map(c => ({ code: c, ...airportInfo(c) })).filter(a => a.lat && a.lon);
+  if (!pts.length) {
+    mapEl.innerHTML = '<div class="empty-note" style="padding-top:40px;">Nessuna rotta da mostrare con questi filtri.</div>';
+    return;
+  }
+
+  const map = L.map(mapEl, { scrollWheelZoom: true, zoomControl: true, attributionControl: true });
+  window.__flightyMap = map;
+
+  const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 19
+  });
+  const satLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, pane: 'shadowPane'
+  });
+  const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd', maxZoom: 19
+  });
+
+  window.__flightyLayers = { satLayer, satLabels, darkLayer };
+  if (mapStyle === 'satellite') { satLayer.addTo(map); satLabels.addTo(map); }
+  else { darkLayer.addTo(map); }
+
+  const routeSeen = {};
+  mapFlights.forEach(f => {
+    const a = airportInfo(f.from), b = airportInfo(f.to);
+    if (!a.lat || !b.lat) return;
+    const key = [f.from, f.to].sort().join('-');
+    routeSeen[key] = (routeSeen[key] || 0) + 1;
+  });
+  const routeColor = mapStyle === 'satellite' ? '#FFD700' : '#4FD8C9';
+  Object.keys(routeSeen).forEach(key => {
+    const [c1, c2] = key.split('-');
+    const a = airportInfo(c1), b = airportInfo(c2);
+    const weight = routeSeen[key];
+    L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
+      color: routeColor,
+      weight: Math.min(1.4 + weight * 0.8, 5),
+      opacity: Math.min(0.55 + weight * 0.1, 0.95)
+    }).addTo(map);
+  });
+
+  const bounds = [];
+  pts.forEach(a => {
+    bounds.push([a.lat, a.lon]);
+    const isHome = HOME_AIRPORTS.includes(a.code);
+    const count = mapFlights.filter(f => f.from === a.code || f.to === a.code).length;
+    const marker = L.circleMarker([a.lat, a.lon], {
+      radius: isHome ? 8 : 5.5,
+      color: '#070B14',
+      weight: 1.5,
+      fillColor: isHome ? '#F0755A' : '#E8B463',
+      fillOpacity: 1
+    }).addTo(map);
+    marker.bindPopup(`<b>${a.code}</b> · ${a.city}${a.country ? ', ' + a.country : ''}<br/>${count} vol${count === 1 ? 'o' : 'i'}`);
+  });
+
+  if (bounds.length === 1) map.setView(bounds[0], 6);
+  else map.fitBounds(bounds, { padding: [36, 36] });
+
+  setTimeout(() => { try { map.invalidateSize(); } catch(e) {} }, 80);
+}
+
+function switchMapStyle(style) {
+  mapStyle = style;
+  const map = window.__flightyMap;
+  const layers = window.__flightyLayers;
+  if (!map || !layers) { render(); return; }
+  Object.values(layers).forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+  if (style === 'satellite') { layers.satLayer.addTo(map); layers.satLabels.addTo(map); }
+  else { layers.darkLayer.addTo(map); }
+  const btns = root.querySelectorAll('.map-toggle button');
+  btns.forEach(b => b.classList.toggle('active', b.getAttribute('data-style') === style));
+}
+
+function renderFilterBar() {
+  if (!hasActiveFilters()) return '';
+  const chips = [];
+  if (globalFilters.year) chips.push({ label: `Anno: ${globalFilters.year}`, dim: 'year' });
+  if (globalFilters.airport) chips.push({ label: `Aeroporto: ${globalFilters.airport}`, dim: 'airport' });
+  if (globalFilters.company) chips.push({ label: `Compagnia: ${globalFilters.company}`, dim: 'company' });
+  if (globalFilters.aircraft) chips.push({ label: `Aereo: ${globalFilters.aircraft}`, dim: 'aircraft' });
+  return `
+    <div class="filter-bar">
+      <span class="filter-bar-label">Filtri attivi:</span>
+      ${chips.map(c => `<span class="filter-chip" data-clear="${c.dim}">${c.label} <b>✕</b></span>`).join('')}
+      <span class="filter-clear-all" id="clear-all-filters">Rimuovi tutti</span>
+    </div>`;
+}
+
+function renderStatStrip(stats) {
+  return `
+    <div class="stat-strip">
+      <div class="stat-cell upcoming">
+        <div class="v accent-coral">${stats.upcomingCount}</div>
+        <div class="l">In programma</div>
+        ${stats.nextFlight ? `<div class="upcoming-next">Prossimo: ${stats.nextFlight.from}→${stats.nextFlight.to} · ${new Date(stats.nextFlight.date+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</div>` : ''}
+      </div>
+      <div class="stat-cell"><div class="v accent-gold">${stats.totalFlights}</div><div class="l">Voli volati</div></div>
+      <div class="stat-cell"><div class="v accent-teal">${fmtNum(stats.totalKm)}</div><div class="l">Km percorsi</div></div>
+      <div class="stat-cell"><div class="v">${fmtNum(stats.totalHours)}</div><div class="l">Ore di volo</div></div>
+      <div class="stat-cell"><div class="v accent-coral">${stats.airportSet.size}</div><div class="l">Aeroporti</div></div>
+      <div class="stat-cell"><div class="v accent-gold">${stats.countrySet.size}</div><div class="l">Paesi</div></div>
+      <div class="stat-cell"><div class="v accent-teal">${stats.timesAroundEarth.toFixed(2)}×</div><div class="l">Giri del mondo</div></div>
+    </div>`;
+}
+
+function renderMapPanel(mapFlights) {
+  return `
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><span class="dot"></span>Rotte volate</div>
+        <div class="map-toggle">
+          <button data-style="satellite" class="${mapStyle==='satellite'?'active':''}">🛰️ Satellite</button>
+          <button data-style="dark" class="${mapStyle==='dark'?'active':''}">🌑 Scuro</button>
+        </div>
+      </div>
+      <div class="map-box"><div id="leaflet-map"></div></div>
+      <div class="map-legend">
+        <span><span class="sw" style="background:#F0755A"></span>Base (Milano/Bergamo)</span>
+        <span><span class="sw" style="background:#E8B463"></span>Aeroporti visitati</span>
+        <span><span class="sw" style="background:#FFD700"></span>Rotte volate</span>
+        <span>Zoom/trascina per esplorare · clic su un aeroporto per i dettagli</span>
+      </div>
+    </div>`;
+}
+
+function renderRankList(counts, activeVal, dim, labelFn) {
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const max = entries[0] ? entries[0][1] : 1;
+  const rows = entries.map((e,i) => `
+    <div class="rank-row clickable ${activeVal===e[0]?'active':''}" data-dim="${dim}" data-val="${e[0].replace(/"/g,'&quot;')}">
+      <div class="rank-idx">${i+1}</div>
+      <div class="rank-name">${labelFn ? labelFn(e[0]) : e[0]}</div>
+      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${(e[1]/max*100).toFixed(0)}%"></div></div>
+      <div class="rank-val">${e[1]}</div>
+    </div>`).join('') || '<div class="empty-note">Nessun dato</div>';
+  return `<div class="rank-scroll">${rows}</div>`;
+}
+
+function renderRankPanels() {
+  const yearsFlights = applyGlobalFilters(flights, 'year');
+  const airportFlights = applyGlobalFilters(flights, 'airport');
+  const companyFlights = applyGlobalFilters(flights, 'company');
+  const aircraftFlights = applyGlobalFilters(flights, 'aircraft');
+
+  const yearCounts = countBy(yearsFlights, f => f.date.slice(0,4));
+  const years = Object.keys(yearCounts).sort();
+  const maxYear = Math.max(...Object.values(yearCounts), 1);
+  const yearChart = years.map(y => `
+    <div class="year-bar-col clickable ${globalFilters.year===y?'active':''}" data-dim="year" data-val="${y}">
+      <div class="year-bar-val">${yearCounts[y]}</div>
+      <div class="year-bar" style="height:${(yearCounts[y]/maxYear*100).toFixed(0)}%"></div>
+      <div class="year-bar-lbl">${y.slice(2)}</div>
+    </div>`).join('') || '<div class="empty-note">Nessun dato</div>';
+
+  const companyCounts = countBy(companyFlights, f => f.company);
+  const airportCounts = {};
+  airportFlights.forEach(f => {
+    airportCounts[f.from] = (airportCounts[f.from]||0)+1;
+    airportCounts[f.to] = (airportCounts[f.to]||0)+1;
+  });
+  const aircraftCounts = countBy(aircraftFlights, f => f.aircraft);
+
+  return `
+    <div class="cols">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title"><span class="dot"></span>Voli per anno</div></div>
+        <div class="year-chart">${yearChart}</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title"><span class="dot"></span>Compagnie</div></div>
+        ${renderRankList(companyCounts, globalFilters.company, 'company')}
+      </div>
+    </div>
+    <div class="cols">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title"><span class="dot"></span>Aeroporti più visitati</div></div>
+        ${renderRankList(airportCounts, globalFilters.airport, 'airport', code => `${code} · ${airportInfo(code).city}`)}
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title"><span class="dot"></span>Tipologia aereo</div></div>
+        ${renderRankList(aircraftCounts, globalFilters.aircraft, 'aircraft', null)}
+      </div>
+    </div>`;
+}
+
+function getFilteredFlights() {
+  let list = applyGlobalFilters(flights, null).slice().sort((a,b) => b.date.localeCompare(a.date));
+  const now = new Date();
+  if (currentFilter !== 'all') {
+    const yearsAgo = { '1y': 1, '3y': 3 };
+    if (currentFilter === 'thisyear') {
+      list = list.filter(f => f.date.slice(0,4) === String(now.getFullYear()));
+    } else if (yearsAgo[currentFilter]) {
+      const cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - yearsAgo[currentFilter]);
+      list = list.filter(f => new Date(f.date) >= cutoff);
+    }
+  }
+  if (searchTerm.trim()) {
+    const t = searchTerm.trim().toLowerCase();
+    list = list.filter(f =>
+      f.company.toLowerCase().includes(t) ||
+      f.from.toLowerCase().includes(t) || f.to.toLowerCase().includes(t) ||
+      (f.fromCity||'').toLowerCase().includes(t) || (f.toCity||'').toLowerCase().includes(t) ||
+      (f.aircraft||'').toLowerCase().includes(t)
+    );
+  }
+  return list;
+}
+
+function renderPass(f, idx) {
+  const d = new Date(f.date + 'T00:00:00');
+  const day = d.getDate();
+  const month = MONTHS_IT[d.getMonth()];
+  const year = d.getFullYear();
+  const hours = (f.km||0)/780 + 25/60;
+  const h = Math.floor(hours);
+  const m = Math.round((hours-h)*60);
+  const future = isFuture(f);
+  return `
+    <div class="pass${future?' pass-future':''}" data-idx="${idx}">
+      <div class="pass-main">
+        <div class="pass-route">
+          <div class="pass-code">${f.from}</div>
+          <div class="pass-arrow"><span class="ln"></span>✈<span class="ln"></span></div>
+          <div class="pass-code">${f.to}</div>
+        </div>
+        <div class="pass-cities">${f.fromCity||''} → ${f.toCity||''}</div>
+        <div class="pass-meta">
+          <span><b>${f.company}</b></span>
+          ${f.aircraft ? `<span>${f.aircraft}</span>` : ''}
+          ${f.km ? `<span>${fmtNum(f.km)} km</span>` : ''}
+          <span>${h}h ${m}m</span>
+        </div>
+        ${future ? `<div class="pass-tag pass-tag-future">In programma</div>` : (f.note ? `<div class="pass-tag">${f.note}</div>` : '')}
+      </div>
+      <div class="pass-stub">
+        <div class="date-d">${day}</div>
+        <div class="date-m">${month}</div>
+        <div class="date-y">${year}</div>
+      </div>
+      <button class="pass-del" data-del="${idx}" title="Elimina volo">✕</button>
+    </div>`;
+}
+
+function renderTimeline() {
+  const list = getFilteredFlights();
+  const idxMap = list.map(f => flights.indexOf(f));
+  const passesHtml = list.length
+    ? list.map((f,i) => renderPass(f, idxMap[i])).join('')
+    : '<div class="empty-note">Nessun volo trovato con questi filtri.</div>';
+
+  return `
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><span class="dot"></span>I tuoi voli (${list.length})</div>
+        <button class="add-btn" id="toggle-add">+ Aggiungi volo</button>
+      </div>
+      <div class="timeline-controls">
+        <div class="chip ${currentFilter==='all'?'active':''}" data-filter="all">Tutti</div>
+        <div class="chip ${currentFilter==='thisyear'?'active':''}" data-filter="thisyear">Quest'anno</div>
+        <div class="chip ${currentFilter==='1y'?'active':''}" data-filter="1y">Ultimo anno</div>
+        <div class="chip ${currentFilter==='3y'?'active':''}" data-filter="3y">Ultimi 3 anni</div>
+        <input class="search-input" id="search-box" placeholder="Cerca..." value="${searchTerm}"/>
+      </div>
+      <div class="add-form" id="add-form">
+        <div class="form-grid">
+          <div class="field"><label>Data</label><input type="date" id="f-date"/></div>
+          <div class="field"><label>Compagnia</label><input type="text" id="f-company" placeholder="es. Ryanair"/></div>
+          <div class="field"><label>Da (IATA)</label><input type="text" id="f-from" placeholder="es. BGY" maxlength="4" style="text-transform:uppercase"/></div>
+          <div class="field"><label>Città partenza</label><input type="text" id="f-fromcity" placeholder="es. Bergamo"/></div>
+          <div class="field"><label>A (IATA)</label><input type="text" id="f-to" placeholder="es. VLC" maxlength="4" style="text-transform:uppercase"/></div>
+          <div class="field"><label>Città arrivo</label><input type="text" id="f-tocity" placeholder="es. Valencia"/></div>
+          <div class="field"><label>Aereo</label><input type="text" id="f-aircraft" placeholder="es. B737-800"/></div>
+          <div class="field"><label>Distanza (km)</label><input type="number" id="f-km" placeholder="es. 1200"/></div>
+          <div class="field"><label>Note</label><input type="text" id="f-note" placeholder="opzionale"/></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary" id="save-flight">Salva volo</button>
+          <button class="btn-ghost" id="cancel-add">Annulla</button>
+          <span class="form-msg" id="form-msg"></span>
+        </div>
+        <div class="form-hint">Se la data è futura il volo viene registrato come "in programma" e passa automaticamente tra i voli volati quando la data arriva.</div>
+      </div>
+      <div class="pass-list" id="pass-list">${passesHtml}</div>
+    </div>`;
+}
+
+function render() {
+  const filteredForStats = applyGlobalFilters(flights, null);
+  const stats = computeStats(filteredForStats);
+  root.innerHTML = `
+    <div class="bg-grid"></div>
+    <div class="wrap">
+      <div class="header">
+        <div class="brand">
+          <div>
+            <div class="brand-title">✈️ I miei voli</div>
+            <div class="brand-sub">Flight log personale · ${stats.firstYear}–${stats.lastYear}</div>
+            <div class="sync-badge ${syncMode==='cloud'?'sync-ok':'sync-off'}">${syncMode==='cloud' ? '● Sincronizzato' : '○ Offline — dati non salvati'}</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="num">${stats.totalFlights}</div>
+          <div class="lbl">voli volati</div>
+        </div>
+      </div>
+      ${renderFilterBar()}
+      ${renderStatStrip(stats)}
+      ${renderMapPanel(filteredForStats)}
+      ${renderRankPanels()}
+      ${renderTimeline()}
+      <div class="footer-note">I dati restano salvati automaticamente su questo dispositivo — aggiungi un volo qui sopra ogni volta che voli. Clicca anno / aeroporto / compagnia / aereo per filtrare tutta la dashboard.</div>
+    </div>`;
+  bindEvents(filteredForStats);
+}
+
+function bindEvents(mapFlights) {
+  // filter chips (timeline quick range)
+  root.querySelectorAll('.chip[data-filter]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      currentFilter = chip.getAttribute('data-filter');
+      render();
+    });
+  });
+
+  // cross-filter clicks (year bars, rank rows)
+  root.querySelectorAll('[data-dim]').forEach(el => {
+    el.addEventListener('click', () => {
+      const dim = el.getAttribute('data-dim');
+      const val = el.getAttribute('data-val');
+      toggleFilter(dim, val);
+    });
+  });
+
+  // clear filter chips
+  root.querySelectorAll('.filter-chip[data-clear]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const dim = chip.getAttribute('data-clear');
+      globalFilters[dim] = null;
+      render();
+    });
+  });
+  const clearAllBtn = root.querySelector('#clear-all-filters');
+  if (clearAllBtn) clearAllBtn.addEventListener('click', clearAllFilters);
+
+  // map style toggle
+  root.querySelectorAll('.map-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => switchMapStyle(btn.getAttribute('data-style')));
+  });
+
+  // search
+  const searchBox = root.querySelector('#search-box');
+  if (searchBox) {
+    searchBox.addEventListener('input', (e) => {
+      searchTerm = e.target.value;
+      const list = getFilteredFlights();
+      const idxMap = list.map(f => flights.indexOf(f));
+      const passList = root.querySelector('#pass-list');
+      passList.innerHTML = list.length ? list.map((f,i)=>renderPass(f, idxMap[i])).join('') : '<div class="empty-note">Nessun volo trovato con questi filtri.</div>';
+      bindPassDelete();
+      const countTitles = root.querySelectorAll('.panel-title');
+      countTitles.forEach(t => { if (t.textContent.includes('I tuoi voli')) t.innerHTML = `<span class="dot"></span>I tuoi voli (${list.length})`; });
+    });
+  }
+
+  // toggle add form
+  const toggleBtn = root.querySelector('#toggle-add');
+  const addForm = root.querySelector('#add-form');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', async () => {
+      if (!addForm.classList.contains('open')) {
+        const ok = await requirePin();
+        if (!ok) return;
+      }
+      addForm.classList.toggle('open');
+      if (addForm.classList.contains('open')) {
+        const dEl = root.querySelector('#f-date');
+        if (dEl && !dEl.value) dEl.value = new Date().toISOString().slice(0,10);
+      }
+    });
+  }
+  const cancelBtn = root.querySelector('#cancel-add');
+  if (cancelBtn) cancelBtn.addEventListener('click', () => addForm.classList.remove('open'));
+
+  // save flight
+  const saveBtn = root.querySelector('#save-flight');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      const date = root.querySelector('#f-date').value;
+      const company = root.querySelector('#f-company').value.trim();
+      const from = root.querySelector('#f-from').value.trim().toUpperCase();
+      const fromCity = root.querySelector('#f-fromcity').value.trim();
+      const to = root.querySelector('#f-to').value.trim().toUpperCase();
+      const toCity = root.querySelector('#f-tocity').value.trim();
+      const aircraft = root.querySelector('#f-aircraft').value.trim();
+      const kmVal = root.querySelector('#f-km').value;
+      const note = root.querySelector('#f-note').value.trim();
+      const msg = root.querySelector('#form-msg');
+
+      if (!date || !company || !from || !to) {
+        msg.textContent = 'Compila almeno data, compagnia, da e a.';
+        msg.style.color = '#F0755A';
+        return;
+      }
+
+      if (!AIRPORTS[from]) AIRPORTS[from] = { city: fromCity || from, country: '', lat: null, lon: null };
+      if (!AIRPORTS[to]) AIRPORTS[to] = { city: toCity || to, country: '', lat: null, lon: null };
+      if (fromCity && AIRPORTS[from]) AIRPORTS[from].city = fromCity;
+      if (toCity && AIRPORTS[to]) AIRPORTS[to].city = toCity;
+
+      const newFlight = {
+        date, company, from, fromCity: fromCity || AIRPORTS[from].city, to, toCity: toCity || AIRPORTS[to].city,
+        aircraft: aircraft || null, tail: null,
+        km: kmVal ? parseFloat(kmVal) : null,
+        price: null, note: note || null, extra: null
+      };
+      try {
+        const saved = await insertFlightRemote(newFlight);
+        flights.push(saved);
+        msg.textContent = date > TODAY_STR ? 'Volo in programma salvato ✓ (sincronizzato)' : 'Volo salvato ✓ (sincronizzato)';
+        msg.style.color = '#4FD8C9';
+      } catch (err) {
+        console.error('Errore salvataggio remoto', err);
+        flights.push(newFlight);
+        msg.textContent = 'Salvato solo su questo dispositivo — controlla la connessione.';
+        msg.style.color = '#F0755A';
+      }
+      setTimeout(() => render(), 600);
+    });
+  }
+
+  bindPassDelete();
+  setTimeout(() => initLeafletMap(mapFlights), 0);
+}
+
+function bindPassDelete() {
+  root.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const ok = await requirePin();
+      if (!ok) return;
+      const idx = parseInt(btn.getAttribute('data-del'), 10);
+      if (confirm('Eliminare questo volo?')) {
+        const target = flights[idx];
+        try {
+          await deleteFlightRemote(target.id);
+        } catch (err) {
+          console.error('Errore eliminazione remota', err);
+          alert('Non sono riuscito a eliminarlo dal database condiviso (offline?). Riprova quando sei online.');
+          return;
+        }
+        flights.splice(idx, 1);
+        render();
+      }
+    });
+  });
+}
+
+loadFlights();
+
+
+})();
+</script>
