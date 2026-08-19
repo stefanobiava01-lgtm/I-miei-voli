@@ -143,11 +143,14 @@
   #flighty-root .modal-actions { display:flex; gap: 10px; justify-content:center; }
   #flighty-root .btn-danger { background: var(--coral); color: #2a0f08; border:none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor:pointer; }
 
-  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: 136px; transition: border-color .15s; }
+  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: 148px; transition: border-color .15s; }
   #flighty-root .pass:hover { border-color: rgba(79,216,201,.35); }
-  #flighty-root .pass-main { padding: 14px 40px 14px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow: hidden; }
-  #flighty-root .pass-meta { display:flex; gap: 8px 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; overflow: hidden; max-height: 32px; row-gap: 3px; }
-  #flighty-root .pass-meta b { color: var(--text); font-weight: 500; }
+  #flighty-root .pass-main { padding: 14px 40px 14px 14px; display: flex; flex-direction: column; gap: 7px; min-width: 0; overflow: hidden; }
+  #flighty-root .pass-line-fixed { display:flex; gap: 8px 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; align-items: center; }
+  #flighty-root .pass-line-fixed b { color: var(--text); font-weight: 500; }
+  #flighty-root .pass-airline { display:flex; align-items:center; }
+  #flighty-root .pass-line-extra { display:flex; gap: 8px; align-items:center; flex-wrap: wrap; min-height: 18px; }
+  #flighty-root .pass-price { font-size: 12px; font-weight: 700; color: var(--teal); }
   #flighty-root .pass-tag { font-size: 9.5px; padding: 2px 7px; border-radius: 10px; background: rgba(240,117,90,.15); color: var(--coral); display:inline-block; width: fit-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #flighty-root .pass-del { position:absolute; top:6px; right:6px; background:none; border:none; color: var(--text-faint); cursor:pointer; font-size: 14px; padding: 2px 6px; border-radius:4px; line-height:1; z-index: 2; }
   #flighty-root .pass-del:hover { color: var(--coral); background: rgba(240,117,90,.1); }
@@ -156,7 +159,8 @@
   #flighty-root .pass-route { display:flex; align-items:center; gap: 10px; }
   #flighty-root .pass-code { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: .02em; flex-shrink:0; }
   #flighty-root .pass-arrow { color: var(--teal); font-size: 12px; flex:1; display:flex; align-items:center; gap:6px; min-width: 20px;}
-  #flighty-root .pass-arrow .ln { flex:1; height:1px; background: repeating-linear-gradient(90deg, var(--text-faint) 0 4px, transparent 4px 8px); min-width: 10px;}
+  #flighty-root .pass-arrow .ln { flex:1; height:1px; background: repeating-linear-gradient(90deg, var(--text-faint) 0 4px, transparent 4px 8px); min-width: 6px;}
+  #flighty-root .flight-duration { font-size: 10px; color: var(--text-faint); white-space: nowrap; flex-shrink: 0; }
   #flighty-root .pass-cities { font-size: 11.5px; color: var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #flighty-root .pass-stub { width: 82px; border-left: 1px dashed var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 10px 6px; background: rgba(255,255,255,.015); position: relative; flex-shrink:0; }
   #flighty-root .pass-stub .date-d { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; color: var(--gold); line-height:1; }
@@ -220,7 +224,7 @@
     #flighty-root .form-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     #flighty-root .field input, #flighty-root .field select { padding: 11px 10px; font-size: 14px; }
     #flighty-root .pass-list { grid-template-columns: 1fr; }
-    #flighty-root .pass { height: auto; min-height: 112px; }
+    #flighty-root .pass { height: auto; min-height: 130px; }
     #flighty-root .pass-del { top: 8px; right: 8px; font-size: 16px; padding: 6px 8px; }
     #flighty-root .pass-edit { top: 8px; right: 38px; font-size: 15px; padding: 6px 8px; }
     #flighty-root .pass-main { padding: 14px 68px 14px 14px; }
@@ -253,7 +257,9 @@ const AIRLINE_IATA = {
   'SAS': 'SK', 'Aer Lingus': 'EI', 'Finnair': 'AY', 'Austrian': 'OS', 'Austrian Airlines': 'OS',
   'Brussels Airlines': 'SN', 'Turkish Airlines': 'TK', 'Emirates': 'EK', 'Qatar Airways': 'QR',
   'American Airlines': 'AA', 'United Airlines': 'UA', 'Delta': 'DL', 'Air Malta': 'KM',
-  'Croatia Airlines': 'OU', 'Blue Air': '0B', 'Transavia': 'HV', 'Air Baltic': 'BT'
+  'Croatia Airlines': 'OU', 'Blue Air': '0B', 'Transavia': 'HV', 'Air Baltic': 'BT',
+  'Aegean': 'A3', 'Aegean Airlines': 'A3', 'Alba Star': 'AP', 'Albastar': 'AP',
+  'Cabo Verde Airlines': 'VR', 'Ita': 'AZ', 'ITA': 'AZ', 'Neos': 'NO', 'WizzAir': 'W6'
 };
 function airlineLogoImg(companyName, size) {
   size = size || 22;
@@ -601,23 +607,30 @@ function initLeafletMap(mapFlights) {
     const bucket = isFuture(f) ? routeSeenFuture : routeSeenFlown;
     bucket[key] = (bucket[key] || 0) + 1;
   });
-  const FLOWN_COLOR = '#4FD8C9';   // teal — voli volati
+  const FLOWN_COLOR = '#39FF8A';   // verde acceso — voli volati, ben visibile anche su satellite
   const FUTURE_COLOR = '#E8A23D'; // arancione — voli in programma
-  function drawRoutes(routeSeen, color, dashed) {
+  function drawRoutes(routeSeen, color, dashed, glow) {
     Object.keys(routeSeen).forEach(key => {
       const [c1, c2] = key.split('-');
       const a = airportInfo(c1), b = airportInfo(c2);
       const weight = routeSeen[key];
+      const mainWeight = Math.min(2.2 + weight * 0.8, 6);
+      if (glow) {
+        // alone sottostante per far risaltare la linea anche su sfondo chiaro/satellitare
+        L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
+          color: color, weight: mainWeight + 5, opacity: 0.22, dashArray: dashed ? '6, 6' : null
+        }).addTo(map);
+      }
       L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
         color: color,
-        weight: Math.min(1.4 + weight * 0.8, 5),
-        opacity: Math.min(0.55 + weight * 0.1, 0.95),
+        weight: mainWeight,
+        opacity: Math.min(0.85 + weight * 0.05, 1),
         dashArray: dashed ? '6, 6' : null
       }).addTo(map);
     });
   }
-  drawRoutes(routeSeenFlown, FLOWN_COLOR, false);
-  drawRoutes(routeSeenFuture, FUTURE_COLOR, true);
+  drawRoutes(routeSeenFlown, FLOWN_COLOR, false, true);
+  drawRoutes(routeSeenFuture, FUTURE_COLOR, true, true);
 
   const bounds = [];
   pts.forEach(a => {
@@ -625,10 +638,10 @@ function initLeafletMap(mapFlights) {
     const isHome = HOME_AIRPORTS.includes(a.code);
     const count = mapFlights.filter(f => f.from === a.code || f.to === a.code).length;
     const marker = L.circleMarker([a.lat, a.lon], {
-      radius: isHome ? 8 : 5.5,
-      color: '#070B14',
-      weight: 1.5,
-      fillColor: isHome ? '#F0755A' : '#4FD8C9',
+      radius: isHome ? 9 : 6.5,
+      color: '#FFFFFF',
+      weight: 2,
+      fillColor: isHome ? '#F0755A' : FLOWN_COLOR,
       fillOpacity: 1
     }).addTo(map);
     marker.bindPopup(`<b>${a.code}</b> · ${a.city}${a.country ? ', ' + a.country : ''}<br/>${count} vol${count === 1 ? 'o' : 'i'}`);
@@ -698,8 +711,8 @@ function renderMapPanel(mapFlights) {
       <div class="map-box"><div id="leaflet-map"></div></div>
       <div class="map-legend">
         <span><span class="sw" style="background:#F0755A"></span>Base (Milano/Bergamo)</span>
-        <span><span class="sw" style="background:#4FD8C9"></span>Aeroporti visitati</span>
-        <span><span class="sw" style="background:#4FD8C9"></span>Rotte volate</span>
+        <span><span class="sw" style="background:#39FF8A"></span>Aeroporti visitati</span>
+        <span><span class="sw" style="background:#39FF8A"></span>Rotte volate</span>
         <span><span class="sw" style="background:#E8A23D"></span>Rotte in programma</span>
         <span>Zoom/trascina per esplorare · clic su un aeroporto per i dettagli</span>
       </div>
@@ -820,18 +833,19 @@ function renderPass(f, idx) {
       <div class="pass-main">
         <div class="pass-route">
           <div class="pass-code">${f.from}</div>
-          <div class="pass-arrow"><span class="ln"></span>✈<span class="ln"></span></div>
+          <div class="pass-arrow"><span class="ln"></span>✈<span class="flight-duration">${h}h ${m}m</span><span class="ln"></span></div>
           <div class="pass-code">${f.to}</div>
         </div>
         <div class="pass-cities">${f.fromCity||''} → ${f.toCity||''}</div>
-        <div class="pass-meta">
-          <span><b>${getAirlineLogo(f.company)} ${f.company}</b></span>
+        <div class="pass-line-fixed">
+          <span class="pass-airline"><b>${getAirlineLogo(f.company)} ${f.company}</b></span>
           ${f.aircraft ? `<span>${f.aircraft}</span>` : ''}
           ${f.km ? `<span>${fmtNum(f.km)} km</span>` : ''}
-          <span>${h}h ${m}m</span>
-          ${f.price ? `<span style="color:var(--teal);font-weight:600">€${fmtNum(f.price,2)}</span>` : ''}
         </div>
-        ${future ? `<div class="pass-tag pass-tag-future">In programma</div>` : (f.note ? `<div class="pass-tag">${f.note}</div>` : '')}
+        <div class="pass-line-extra">
+          ${f.price ? `<span class="pass-price">€${fmtNum(f.price,2)}</span>` : ''}
+          ${future ? `<span class="pass-tag pass-tag-future">In programma</span>` : (f.note ? `<span class="pass-tag">${f.note}</span>` : '')}
+        </div>
       </div>
       <div class="pass-stub">
         <div class="date-d">${day}</div>
@@ -933,6 +947,7 @@ function renderTimeline() {
 function render() {
   const filteredForStats = applyGlobalFilters(getBaseFlights(), null);
   const stats = computeStats(filteredForStats);
+  const totalEverFlown = flights.filter(isFlown).length; // sempre tutti i voli, ignora ogni filtro
   root.innerHTML = `
     <div class="bg-grid"></div>
     <div class="wrap">
@@ -945,8 +960,8 @@ function render() {
           </div>
         </div>
         <div class="header-right">
-          <div class="num">${stats.totalFlights}</div>
-          <div class="lbl">voli volati</div>
+          <div class="num">${totalEverFlown}</div>
+          <div class="lbl">voli totali</div>
         </div>
       </div>
       ${renderFilterBar()}
