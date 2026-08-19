@@ -143,10 +143,10 @@
   #flighty-root .modal-actions { display:flex; gap: 10px; justify-content:center; }
   #flighty-root .btn-danger { background: var(--coral); color: #2a0f08; border:none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor:pointer; }
 
-  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: 118px; transition: border-color .15s; }
+  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: 136px; transition: border-color .15s; }
   #flighty-root .pass:hover { border-color: rgba(79,216,201,.35); }
   #flighty-root .pass-main { padding: 14px 40px 14px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow: hidden; }
-  #flighty-root .pass-meta { display:flex; gap: 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; overflow: hidden; max-height: 15px; }
+  #flighty-root .pass-meta { display:flex; gap: 8px 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; overflow: hidden; max-height: 32px; row-gap: 3px; }
   #flighty-root .pass-meta b { color: var(--text); font-weight: 500; }
   #flighty-root .pass-tag { font-size: 9.5px; padding: 2px 7px; border-radius: 10px; background: rgba(240,117,90,.15); color: var(--coral); display:inline-block; width: fit-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #flighty-root .pass-del { position:absolute; top:6px; right:6px; background:none; border:none; color: var(--text-faint); cursor:pointer; font-size: 14px; padding: 2px 6px; border-radius:4px; line-height:1; z-index: 2; }
@@ -186,6 +186,8 @@
   #flighty-root .form-msg { font-size: 12px; color: var(--teal); margin-left: 6px; }
 
   #flighty-root .footer-note { text-align:center; font-size: 11px; color: var(--text-faint); margin-top: 24px; }
+  #flighty-root .airline-logo-img { vertical-align: middle; border-radius: 3px; background: #fff; padding: 1px 3px; margin-right: 2px; }
+  #flighty-root .airline-emoji { font-size: 13px; margin-right: 3px; }
   #flighty-root .loading-state { text-align:center; padding: 80px 20px; color: var(--text-faint); font-size: 13px; }
   #flighty-root .tooltip-airport { position:absolute; pointer-events:none; background: #0A0F1C; border:1px solid var(--line); padding: 5px 9px; border-radius: 6px; font-size: 11px; color: var(--text); display:none; white-space:nowrap; z-index: 10; }
 
@@ -243,12 +245,23 @@ function todayFormatted() {
 const HOME_AIRPORTS = ['BGY','MXP','LIN']; // aeroporti di casa (Milano/Bergamo area)
 
 // --- Loghi compagnie e bandiere paesi ---
-const AIRLINE_LOGOS = {
-  'Meridiana': '🇮🇹', 'Easyjet': '✈️', 'Ryanair': '🍀', 'Lufthansa': '🇩🇪',
-  'Alitalia': '🇮🇹', 'KLM': '🇳🇱', 'Air France': '🇫🇷', 'British Airways': '🇬🇧',
-  'Iberia': '🇪🇸', 'TAP': '🇵🇹', 'Swiss': '🇨🇭', 'Vueling': '🇪🇸',
+const AIRLINE_IATA = {
+  'Meridiana': 'IG', 'Air Italy': 'IG', 'Easyjet': 'U2', 'EasyJet': 'U2', 'Ryanair': 'FR',
+  'Lufthansa': 'LH', 'Alitalia': 'AZ', 'ITA Airways': 'AZ', 'KLM': 'KL', 'Air France': 'AF',
+  'British Airways': 'BA', 'Iberia': 'IB', 'TAP': 'TP', 'TAP Portugal': 'TP', 'TAP Air Portugal': 'TP',
+  'Swiss': 'LX', 'Vueling': 'VY', 'Volotea': 'V7', 'Wizz Air': 'W6', 'Norwegian': 'DY',
+  'SAS': 'SK', 'Aer Lingus': 'EI', 'Finnair': 'AY', 'Austrian': 'OS', 'Austrian Airlines': 'OS',
+  'Brussels Airlines': 'SN', 'Turkish Airlines': 'TK', 'Emirates': 'EK', 'Qatar Airways': 'QR',
+  'American Airlines': 'AA', 'United Airlines': 'UA', 'Delta': 'DL', 'Air Malta': 'KM',
+  'Croatia Airlines': 'OU', 'Blue Air': '0B', 'Transavia': 'HV', 'Air Baltic': 'BT'
 };
-function getAirlineLogo(companyName) { return AIRLINE_LOGOS[companyName] || '✈'; }
+function airlineLogoImg(companyName, size) {
+  size = size || 22;
+  const code = AIRLINE_IATA[companyName];
+  if (!code) return `<span class="airline-emoji" title="${companyName}">✈</span>`;
+  return `<img src="https://images.kiwi.com/airlines/64/${code}.png" alt="${companyName}" title="${companyName}" class="airline-logo-img" style="height:${size}px" onerror="this.outerHTML='<span class=&quot;airline-emoji&quot;>✈</span>'"/>`;
+}
+function getAirlineLogo(companyName) { return airlineLogoImg(companyName); }
 
 const COUNTRY_FLAGS = {
   'Italia': '🇮🇹', 'Paesi Bassi': '🇳🇱', 'Francia': '🇫🇷', 'Regno Unito': '🇬🇧',
@@ -257,8 +270,18 @@ const COUNTRY_FLAGS = {
   'Rep. Ceca': '🇨🇿', 'Ungheria': '🇭🇺', 'Bulgaria': '🇧🇬', 'Belgio': '🇧🇪',
   'Austria': '🇦🇹', 'Polonia': '🇵🇱', 'Estonia': '🇪🇪', 'Norvegia': '🇳🇴',
   'Aruba': '🇦🇼', 'Bonaire': '🇧🇶', 'Capo Verde': '🇨🇻', 'Egitto': '🇪🇬',
+  // nomi inglesi, restituiti dal database aeroportuale mondiale per aeroporti nuovi
+  'Italy': '🇮🇹', 'Netherlands': '🇳🇱', 'France': '🇫🇷', 'United Kingdom': '🇬🇧',
+  'Spain': '🇪🇸', 'Portugal': '🇵🇹', 'Germany': '🇩🇪', 'Switzerland': '🇨🇭',
+  'Greece': '🇬🇷', 'Denmark': '🇩🇰', 'Sweden': '🇸🇪', 'Finland': '🇫🇮',
+  'Czech Republic': '🇨🇿', 'Hungary': '🇭🇺', 'Belgium': '🇧🇪', 'Poland': '🇵🇱',
+  'Norway': '🇳🇴', 'Egypt': '🇪🇬', 'Croatia': '🇭🇷', 'Turkey': '🇹🇷', 'Malta': '🇲🇹',
+  'Ireland': '🇮🇪', 'Iceland': '🇮🇸', 'Slovenia': '🇸🇮', 'Slovakia': '🇸🇰',
+  'Romania': '🇷🇴', 'Serbia': '🇷🇸', 'Morocco': '🇲🇦', 'Tunisia': '🇹🇳',
+  'United States': '🇺🇸', 'United Arab Emirates': '🇦🇪', 'Cape Verde': '🇨🇻',
+  'Montenegro': '🇲🇪', 'Albania': '🇦🇱', 'Cyprus': '🇨🇾', 'Luxembourg': '🇱🇺',
 };
-function getCountryFlag(countryName) { return COUNTRY_FLAGS[countryName] || '🌍'; } // aeroporti di casa (Milano/Bergamo area)
+function getCountryFlag(countryName) { return COUNTRY_FLAGS[countryName] || '🌍'; }
 
 // --- Collegamento Supabase (sincronizzazione multi-dispositivo) ---
 const SUPABASE_URL = 'https://tnizhjtjhkoglwjmldsn.supabase.co';
@@ -359,6 +382,7 @@ async function loadFlights() {
     syncMode = 'offline';
   }
   render();
+  resolveUnknownAirports().then(changed => { if (changed) render(); });
 }
 
 async function insertFlightRemote(flight) {
@@ -383,6 +407,67 @@ async function updateFlightRemote(id, flight) {
 
 function airportInfo(code) {
   return AIRPORTS[code] || { city: code, country: '', lat: null, lon: null };
+}
+
+// --- Ricerca aeroporti sconosciuti in un database mondiale (OpenFlights) ---
+// Copre migliaia di aeroporti oltre ai 35 già noti, così nuove rotte/aeroporti
+// ottengono coordinate GPS (per la mappa) e paese (per la bandiera) in automatico.
+let openFlightsDbPromise = null;
+function parseCsvLine(line) {
+  const result = [];
+  let cur = '', inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') inQuotes = !inQuotes;
+    else if (ch === ',' && !inQuotes) { result.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  result.push(cur);
+  return result;
+}
+function ensureAirportsDB() {
+  if (openFlightsDbPromise) return openFlightsDbPromise;
+  openFlightsDbPromise = fetch('https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat')
+    .then(r => r.text())
+    .then(text => {
+      const db = {};
+      text.split('\n').forEach(line => {
+        if (!line.trim()) return;
+        const f = parseCsvLine(line);
+        const iata = (f[4] || '').replace(/"/g, '').trim();
+        const lat = parseFloat(f[6]), lon = parseFloat(f[7]);
+        if (iata && iata.length === 3 && iata !== '\\N' && !isNaN(lat) && !isNaN(lon)) {
+          db[iata] = {
+            city: (f[2] || '').replace(/"/g, '').trim(),
+            country: (f[3] || '').replace(/"/g, '').trim(),
+            lat, lon
+          };
+        }
+      });
+      return db;
+    })
+    .catch(err => { console.error('Errore caricamento database aeroporti mondiale', err); return {}; });
+  return openFlightsDbPromise;
+}
+async function resolveUnknownAirports() {
+  const codes = new Set();
+  flights.forEach(f => { codes.add(f.from); codes.add(f.to); });
+  const missing = [...codes].filter(c => c && (!AIRPORTS[c] || !AIRPORTS[c].lat));
+  if (!missing.length) return false;
+  const db = await ensureAirportsDB();
+  let changed = false;
+  missing.forEach(code => {
+    if (db[code]) {
+      AIRPORTS[code] = {
+        city: (AIRPORTS[code] && AIRPORTS[code].city) || db[code].city,
+        country: db[code].country,
+        lat: db[code].lat,
+        lon: db[code].lon
+      };
+      changed = true;
+    }
+  });
+  return changed;
 }
 
 function fmtNum(n, decimals) {
@@ -949,16 +1034,23 @@ function bindEvents(mapFlights) {
   const cancelBtn = root.querySelector('#cancel-add');
   if (cancelBtn) cancelBtn.addEventListener('click', () => { addForm.classList.remove('open'); editingFlightId = null; });
 
-  // autocompila la città quando riconosce un codice IATA noto
+  // autocompila la città quando riconosce un codice IATA (noto o cercato nel database mondiale)
   ['f-from','f-to'].forEach(fieldId => {
     const input = root.querySelector('#'+fieldId);
     const cityId = fieldId === 'f-from' ? 'f-fromcity' : 'f-tocity';
     if (!input) return;
-    input.addEventListener('blur', () => {
+    input.addEventListener('blur', async () => {
       const code = input.value.trim().toUpperCase();
+      if (!code) return;
       const cityInput = root.querySelector('#'+cityId);
-      if (AIRPORTS[code] && cityInput && !cityInput.value.trim()) {
-        cityInput.value = AIRPORTS[code].city;
+      if (AIRPORTS[code]) {
+        if (cityInput && !cityInput.value.trim()) cityInput.value = AIRPORTS[code].city;
+        return;
+      }
+      const db = await ensureAirportsDB();
+      if (db[code]) {
+        AIRPORTS[code] = { city: db[code].city, country: db[code].country, lat: db[code].lat, lon: db[code].lon };
+        if (cityInput && !cityInput.value.trim()) cityInput.value = db[code].city;
       }
     });
   });
@@ -985,8 +1077,19 @@ function bindEvents(mapFlights) {
         return;
       }
 
-      if (!AIRPORTS[from]) AIRPORTS[from] = { city: fromCity || from, country: '', lat: null, lon: null };
-      if (!AIRPORTS[to]) AIRPORTS[to] = { city: toCity || to, country: '', lat: null, lon: null };
+      if (!AIRPORTS[from] || !AIRPORTS[to]) {
+        const db = await ensureAirportsDB();
+        if (!AIRPORTS[from]) {
+          AIRPORTS[from] = db[from]
+            ? { city: fromCity || db[from].city, country: db[from].country, lat: db[from].lat, lon: db[from].lon }
+            : { city: fromCity || from, country: '', lat: null, lon: null };
+        }
+        if (!AIRPORTS[to]) {
+          AIRPORTS[to] = db[to]
+            ? { city: toCity || db[to].city, country: db[to].country, lat: db[to].lat, lon: db[to].lon }
+            : { city: toCity || to, country: '', lat: null, lon: null };
+        }
+      }
       if (fromCity && AIRPORTS[from]) AIRPORTS[from].city = fromCity;
       if (toCity && AIRPORTS[to]) AIRPORTS[to].city = toCity;
 
