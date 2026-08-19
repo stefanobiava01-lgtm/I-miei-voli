@@ -188,6 +188,45 @@
   #flighty-root .footer-note { text-align:center; font-size: 11px; color: var(--text-faint); margin-top: 24px; }
   #flighty-root .loading-state { text-align:center; padding: 80px 20px; color: var(--text-faint); font-size: 13px; }
   #flighty-root .tooltip-airport { position:absolute; pointer-events:none; background: #0A0F1C; border:1px solid var(--line); padding: 5px 9px; border-radius: 6px; font-size: 11px; color: var(--text); display:none; white-space:nowrap; z-index: 10; }
+
+  /* --- Responsive: tablet --- */
+  @media (max-width: 860px) {
+    #flighty-root .wrap { padding: 20px 16px 48px; }
+    #flighty-root .stat-strip { grid-template-columns: repeat(3, 1fr); }
+    #flighty-root .map-box { height: 380px; }
+  }
+
+  /* --- Responsive: mobile --- */
+  @media (max-width: 600px) {
+    #flighty-root .wrap { padding: 16px 12px 40px; }
+    #flighty-root .header { align-items: flex-start; }
+    #flighty-root .brand-title { font-size: 19px; }
+    #flighty-root .header-right .num { font-size: 24px; }
+    #flighty-root .stat-strip { grid-template-columns: repeat(2, 1fr); }
+    #flighty-root .stat-cell { padding: 12px 12px; }
+    #flighty-root .stat-cell .v { font-size: 20px; }
+    #flighty-root .map-box { height: 300px; }
+    #flighty-root .panel { padding: 14px; }
+    #flighty-root .panel-head { gap: 8px; }
+    #flighty-root .map-toggle button { padding: 7px 10px; font-size: 11px; }
+    #flighty-root .timeline-controls { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+    #flighty-root .timeline-controls::-webkit-scrollbar { height: 4px; }
+    #flighty-root .chip { flex-shrink: 0; padding: 8px 13px; }
+    #flighty-root .search-input { width: 100%; margin-left: 0; margin-top: 8px; flex-basis: 100%; order: 99; }
+    #flighty-root .panel-head-actions { width: 100%; }
+    #flighty-root .add-btn, #flighty-root .export-btn { flex: 1; justify-content: center; padding: 12px 10px; font-size: 12.5px; }
+    #flighty-root .form-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    #flighty-root .field input, #flighty-root .field select { padding: 11px 10px; font-size: 14px; }
+    #flighty-root .pass-list { grid-template-columns: 1fr; }
+    #flighty-root .pass { height: auto; min-height: 112px; }
+    #flighty-root .pass-del { top: 8px; right: 8px; font-size: 16px; padding: 6px 8px; }
+    #flighty-root .pass-edit { top: 8px; right: 38px; font-size: 15px; padding: 6px 8px; }
+    #flighty-root .pass-main { padding: 14px 68px 14px 14px; }
+    #flighty-root .cols { gap: 14px; }
+    #flighty-root .rank-scroll { max-height: 220px; }
+    #flighty-root .form-actions { flex-wrap: wrap; }
+    #flighty-root .btn-primary, #flighty-root .btn-ghost { flex: 1; text-align: center; padding: 12px; }
+  }
 </style>
 
 <script>
@@ -202,6 +241,24 @@ function todayFormatted() {
   return `${d.getDate()} ${MONTHS_FULL_IT[d.getMonth()]} ${d.getFullYear()}`;
 }
 const HOME_AIRPORTS = ['BGY','MXP','LIN']; // aeroporti di casa (Milano/Bergamo area)
+
+// --- Loghi compagnie e bandiere paesi ---
+const AIRLINE_LOGOS = {
+  'Meridiana': '🇮🇹', 'Easyjet': '✈️', 'Ryanair': '🍀', 'Lufthansa': '🇩🇪',
+  'Alitalia': '🇮🇹', 'KLM': '🇳🇱', 'Air France': '🇫🇷', 'British Airways': '🇬🇧',
+  'Iberia': '🇪🇸', 'TAP': '🇵🇹', 'Swiss': '🇨🇭', 'Vueling': '🇪🇸',
+};
+function getAirlineLogo(companyName) { return AIRLINE_LOGOS[companyName] || '✈'; }
+
+const COUNTRY_FLAGS = {
+  'Italia': '🇮🇹', 'Paesi Bassi': '🇳🇱', 'Francia': '🇫🇷', 'Regno Unito': '🇬🇧',
+  'Spagna': '🇪🇸', 'Portogallo': '🇵🇹', 'Germania': '🇩🇪', 'Svizzera': '🇨🇭',
+  'Grecia': '🇬🇷', 'Danimarca': '🇩🇰', 'Svezia': '🇸🇪', 'Finlandia': '🇫🇮',
+  'Rep. Ceca': '🇨🇿', 'Ungheria': '🇭🇺', 'Bulgaria': '🇧🇬', 'Belgio': '🇧🇪',
+  'Austria': '🇦🇹', 'Polonia': '🇵🇱', 'Estonia': '🇪🇪', 'Norvegia': '🇳🇴',
+  'Aruba': '🇦🇼', 'Bonaire': '🇧🇶', 'Capo Verde': '🇨🇻', 'Egitto': '🇪🇬',
+};
+function getCountryFlag(countryName) { return COUNTRY_FLAGS[countryName] || '🌍'; } // aeroporti di casa (Milano/Bergamo area)
 
 // --- Collegamento Supabase (sincronizzazione multi-dispositivo) ---
 const SUPABASE_URL = 'https://tnizhjtjhkoglwjmldsn.supabase.co';
@@ -375,11 +432,13 @@ function computeStats(baseList) {
 
   const airportSet = new Set();
   const countrySet = new Set();
+  const companySet = new Set();
   flownList.forEach(f => {
     airportSet.add(f.from); airportSet.add(f.to);
     const ai = airportInfo(f.from), bi = airportInfo(f.to);
     if (ai.country) countrySet.add(ai.country);
     if (bi.country) countrySet.add(bi.country);
+    if (f.company) companySet.add(f.company);
   });
 
   const earthCircumference = 40075;
@@ -392,7 +451,7 @@ function computeStats(baseList) {
   const nextFlight = futureList.slice().sort((a,b)=>a.date.localeCompare(b.date))[0] || null;
 
   return {
-    totalFlights, totalKm, totalHours, airportSet, countrySet,
+    totalFlights, totalKm, totalHours, airportSet, countrySet, companySet,
     firstYear, lastYear, timesAroundEarth,
     upcomingCount: futureList.length, nextFlight
   };
@@ -448,24 +507,32 @@ function initLeafletMap(mapFlights) {
   if (mapStyle === 'satellite') { satLayer.addTo(map); satLabels.addTo(map); }
   else { darkLayer.addTo(map); }
 
-  const routeSeen = {};
+  const routeSeenFlown = {};
+  const routeSeenFuture = {};
   mapFlights.forEach(f => {
     const a = airportInfo(f.from), b = airportInfo(f.to);
     if (!a.lat || !b.lat) return;
     const key = [f.from, f.to].sort().join('-');
-    routeSeen[key] = (routeSeen[key] || 0) + 1;
+    const bucket = isFuture(f) ? routeSeenFuture : routeSeenFlown;
+    bucket[key] = (bucket[key] || 0) + 1;
   });
-  const routeColor = mapStyle === 'satellite' ? '#FFD700' : '#4FD8C9';
-  Object.keys(routeSeen).forEach(key => {
-    const [c1, c2] = key.split('-');
-    const a = airportInfo(c1), b = airportInfo(c2);
-    const weight = routeSeen[key];
-    L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
-      color: routeColor,
-      weight: Math.min(1.4 + weight * 0.8, 5),
-      opacity: Math.min(0.55 + weight * 0.1, 0.95)
-    }).addTo(map);
-  });
+  const FLOWN_COLOR = '#4FD8C9';   // teal — voli volati
+  const FUTURE_COLOR = '#E8A23D'; // arancione — voli in programma
+  function drawRoutes(routeSeen, color, dashed) {
+    Object.keys(routeSeen).forEach(key => {
+      const [c1, c2] = key.split('-');
+      const a = airportInfo(c1), b = airportInfo(c2);
+      const weight = routeSeen[key];
+      L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
+        color: color,
+        weight: Math.min(1.4 + weight * 0.8, 5),
+        opacity: Math.min(0.55 + weight * 0.1, 0.95),
+        dashArray: dashed ? '6, 6' : null
+      }).addTo(map);
+    });
+  }
+  drawRoutes(routeSeenFlown, FLOWN_COLOR, false);
+  drawRoutes(routeSeenFuture, FUTURE_COLOR, true);
 
   const bounds = [];
   pts.forEach(a => {
@@ -476,7 +543,7 @@ function initLeafletMap(mapFlights) {
       radius: isHome ? 8 : 5.5,
       color: '#070B14',
       weight: 1.5,
-      fillColor: isHome ? '#F0755A' : '#E8B463',
+      fillColor: isHome ? '#F0755A' : '#4FD8C9',
       fillOpacity: 1
     }).addTo(map);
     marker.bindPopup(`<b>${a.code}</b> · ${a.city}${a.country ? ', ' + a.country : ''}<br/>${count} vol${count === 1 ? 'o' : 'i'}`);
@@ -528,6 +595,7 @@ function renderStatStrip(stats) {
       <div class="stat-cell"><div class="v">${fmtNum(stats.totalHours)}</div><div class="l">Ore di volo</div></div>
       <div class="stat-cell"><div class="v accent-coral">${stats.airportSet.size}</div><div class="l">Aeroporti</div></div>
       <div class="stat-cell"><div class="v accent-gold">${stats.countrySet.size}</div><div class="l">Paesi</div></div>
+      <div class="stat-cell"><div class="v accent-teal">${stats.companySet.size}</div><div class="l">Compagnie</div></div>
       <div class="stat-cell"><div class="v accent-teal">${stats.timesAroundEarth.toFixed(2)}×</div><div class="l">Giri del mondo</div></div>
     </div>`;
 }
@@ -545,8 +613,9 @@ function renderMapPanel(mapFlights) {
       <div class="map-box"><div id="leaflet-map"></div></div>
       <div class="map-legend">
         <span><span class="sw" style="background:#F0755A"></span>Base (Milano/Bergamo)</span>
-        <span><span class="sw" style="background:#E8B463"></span>Aeroporti visitati</span>
-        <span><span class="sw" style="background:#FFD700"></span>Rotte volate</span>
+        <span><span class="sw" style="background:#4FD8C9"></span>Aeroporti visitati</span>
+        <span><span class="sw" style="background:#4FD8C9"></span>Rotte volate</span>
+        <span><span class="sw" style="background:#E8A23D"></span>Rotte in programma</span>
         <span>Zoom/trascina per esplorare · clic su un aeroporto per i dettagli</span>
       </div>
     </div>`;
@@ -574,6 +643,10 @@ function applyQuickFilters(list) {
       out = out.filter(f => f.date.slice(0,4) === String(now.getFullYear()));
     } else if (currentFilter === 'work') {
       out = out.filter(f => (f.note||'').toUpperCase().includes('X LAVORO'));
+    } else if (currentFilter === 'flown') {
+      out = out.filter(isFlown);
+    } else if (currentFilter === 'notflown') {
+      out = out.filter(isFuture);
     } else if (yearsAgo[currentFilter]) {
       const cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - yearsAgo[currentFilter]);
       out = out.filter(f => new Date(f.date) >= cutoff);
@@ -629,13 +702,13 @@ function renderRankPanels() {
       </div>
       <div class="panel">
         <div class="panel-head"><div class="panel-title"><span class="dot"></span>Compagnie</div></div>
-        ${renderRankList(companyCounts, globalFilters.company, 'company')}
+        ${renderRankList(companyCounts, globalFilters.company, 'company', name => `${getAirlineLogo(name)} ${name}`)}
       </div>
     </div>
     <div class="cols">
       <div class="panel">
         <div class="panel-head"><div class="panel-title"><span class="dot"></span>Aeroporti più visitati</div></div>
-        ${renderRankList(airportCounts, globalFilters.airport, 'airport', code => `${code} · ${airportInfo(code).city}`)}
+        ${renderRankList(airportCounts, globalFilters.airport, 'airport', code => `${getCountryFlag(airportInfo(code).country)} ${code} · ${airportInfo(code).city}`)}
       </div>
       <div class="panel">
         <div class="panel-head"><div class="panel-title"><span class="dot"></span>Tipologia aereo</div></div>
@@ -667,10 +740,11 @@ function renderPass(f, idx) {
         </div>
         <div class="pass-cities">${f.fromCity||''} → ${f.toCity||''}</div>
         <div class="pass-meta">
-          <span><b>${f.company}</b></span>
+          <span><b>${getAirlineLogo(f.company)} ${f.company}</b></span>
           ${f.aircraft ? `<span>${f.aircraft}</span>` : ''}
           ${f.km ? `<span>${fmtNum(f.km)} km</span>` : ''}
           <span>${h}h ${m}m</span>
+          ${f.price ? `<span style="color:var(--teal);font-weight:600">€${fmtNum(f.price,2)}</span>` : ''}
         </div>
         ${future ? `<div class="pass-tag pass-tag-future">In programma</div>` : (f.note ? `<div class="pass-tag">${f.note}</div>` : '')}
       </div>
@@ -738,6 +812,8 @@ function renderTimeline() {
         <div class="chip ${currentFilter==='thisyear'?'active':''}" data-filter="thisyear">Quest'anno</div>
         <div class="chip ${currentFilter==='1y'?'active':''}" data-filter="1y">Ultimo anno</div>
         <div class="chip ${currentFilter==='3y'?'active':''}" data-filter="3y">Ultimi 3 anni</div>
+        <div class="chip ${currentFilter==='flown'?'active':''}" data-filter="flown">Volati</div>
+        <div class="chip ${currentFilter==='notflown'?'active':''}" data-filter="notflown">Non volati</div>
         <div class="chip chip-work ${currentFilter==='work'?'active':''}" data-filter="work">✈ X LAVORO</div>
         <input class="search-input" id="search-box" placeholder="Cerca..." value="${searchTerm}"/>
       </div>
@@ -793,7 +869,7 @@ function render() {
       ${renderMapPanel(filteredForStats)}
       ${renderRankPanels()}
       ${renderTimeline()}
-      <div class="footer-note">I dati restano salvati automaticamente su questo dispositivo — aggiungi un volo qui sopra ogni volta che voli. Clicca anno / aeroporto / compagnia / aereo per filtrare tutta la dashboard.</div>
+      <div class="footer-note">I dati vengono salvati online (sincronizzati su tutti i tuoi dispositivi) — aggiungi un volo qui sopra ogni volta che voli. Clicca anno / aeroporto / compagnia / aereo per filtrare tutta la dashboard.</div>
     </div>`;
   bindEvents(filteredForStats);
 }
