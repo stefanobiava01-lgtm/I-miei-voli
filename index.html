@@ -934,6 +934,206 @@ function exportBackupXlsx() {
   XLSX.writeFile(wb, `backup_voli_${stamp}.xlsx`);
 }
 
+// Ripristina dati (tail number, prezzo, extra) persi per via di un vecchio bug nella
+// funzione di modifica che azzerava questi campi. Confronta con l'importazione originale
+// dall'Excel (SEED_FLIGHTS) e recupera SOLO i campi attualmente vuoti, senza mai
+// sovrascrivere un dato che l'utente ha inserito o modificato volontariamente.
+async function repairMissingData() {
+  const ok = await requirePin();
+  if (!ok) return;
+
+  const seedByKey = {};
+  SEED_FLIGHTS.forEach(sf => {
+    const key = `${sf.date}|${sf.from}|${sf.to}|${sf.company}`;
+    seedByKey[key] = sf;
+  });
+
+  const candidates = [];
+  flights.forEach(f => {
+    const key = `${f.date}|${f.from}|${f.to}|${f.company}`;
+    const seed = seedByKey[key];
+    if (!seed) return;
+    const patch = {};
+    if (!f.tail && seed.tail) patch.tail = seed.tail;
+    if ((f.price === null || f.price === undefined) && seed.price !== null && seed.price !== undefined) patch.price = seed.price;
+    if ((f.extra === null || f.extra === undefined) && seed.extra !== null && seed.extra !== undefined) patch.extra = seed.extra;
+    if (Object.keys(patch).length) candidates.push({ flight: f, patch });
+  });
+
+  if (!candidates.length) {
+    await showInfoModal('Ripristino dati', '<div style="text-align:center;padding:8px 0;">Nessun dato mancante da ripristinare — tutto in ordine ✓</div>');
+    return;
+  }
+
+  const listHtml = candidates.map(c => `
+    <div class="tail-flight-row">
+      <span class="tail-flight-date">${c.flight.date.split('-').reverse().join('/')}</span>
+      <span class="tail-flight-route">${c.flight.from} → ${c.flight.to}</span>
+      <span class="tail-flight-company">${Object.keys(c.patch).join(', ')}</span>
+    </div>`).join('');
+  const confirmed = await showConfirmModal(
+    `Ripristinare ${candidates.length} vol${candidates.length===1?'o':'i'}?`,
+    `Questi voli hanno dati mancanti recuperabili dall'importazione originale:<div class="tail-flight-list" style="margin-top:10px;max-height:200px;overflow-y:auto;">${listHtml}</div>`,
+    'Ripristina'
+  );
+  if (!confirmed) return;
+
+  let done = 0, failed = 0;
+  for (const c of candidates) {
+    try {
+      const merged = { ...c.flight, ...c.patch };
+      const updated = await updateFlightRemote(c.flight.id, merged);
+      const idx = flights.findIndex(f => f.id === c.flight.id);
+      if (idx >= 0) flights[idx] = updated;
+      done++;
+    } catch (err) {
+      console.error('Errore ripristino volo', c.flight.id, err);
+      failed++;
+    }
+  }
+  render();
+  await showInfoModal('Ripristino completato', `<div style="text-align:center;padding:8px 0;">✓ ${done} vol${done===1?'o':'i'} ripristinat${done===1?'o':'i'}${failed?`<br/><span style="color:var(--coral)">${failed} falliti (controlla la connessione)</span>`:''}</div>`);
+}
+
+// --- Importazione massiva da Excel ---
+// Riconosce le stesse colonne del backup che si scarica con "Esporta backup",
+// così puoi ricaricare in blocco un file preparato altrove o modificato in Excel.
+function excelSerialToISO(serial) {
+  const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+  return d.toISOString().slice(0, 10);
+}
+function parseDateFlexible(value) {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === 'number') return excelSerialToISO(value);
+  const s = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return s;
+}
+function normalizeRowKeys(row) {
+  const norm = {};
+  Object.keys(row).forEach(k => { norm[k.trim().toLowerCase()] = row[k]; });
+  return norm;
+}
+function pickField(norm, ...keys) {
+  for (const k of keys) {
+    if (norm[k] !== undefined && norm[k] !== null && String(norm[k]).trim() !== '') return norm[k];
+  }
+  return null;
+}
+function parseNumField(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = parseFloat(String(v).replace(',', '.'));
+  return isNaN(n) ? null : n;
+}
+
+function triggerImportFile() {
+  const input = root.querySelector('#import-file-input');
+  if (input) input.click();
+}
+
+async function handleImportFile(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ''; // reset per permettere di riselezionare lo stesso file
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { alert('Libreria di importazione non disponibile.'); return; }
+
+  let rawRows;
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  } catch (err) {
+    console.error('Errore lettura file', err);
+    alert('Non sono riuscito a leggere questo file. Assicurati che sia un .xlsx valido.');
+    return;
+  }
+  if (!rawRows.length) { alert('Il file sembra vuoto.'); return; }
+
+  const existingKeys = new Set(flights.map(f => `${f.date}|${f.from}|${f.to}|${f.company}`));
+  const toImport = [];
+  const duplicates = [];
+  const invalid = [];
+
+  rawRows.forEach((row, i) => {
+    const norm = normalizeRowKeys(row);
+    const dateRaw = pickField(norm, 'data', 'date');
+    const company = pickField(norm, 'compagnia', 'company');
+    const from = pickField(norm, 'da (iata)', 'da', 'from');
+    const to = pickField(norm, 'a (iata)', 'a', 'to');
+    if (!dateRaw || !company || !from || !to) { invalid.push(i + 2); return; }
+
+    const date = parseDateFlexible(dateRaw);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { invalid.push(i + 2); return; }
+
+    const flight = {
+      date,
+      company: String(company).trim(),
+      from: String(from).trim().toUpperCase(),
+      fromCity: (pickField(norm, 'città partenza', 'citta partenza', 'fromcity') || '').toString().trim() || null,
+      to: String(to).trim().toUpperCase(),
+      toCity: (pickField(norm, 'città arrivo', 'citta arrivo', 'tocity') || '').toString().trim() || null,
+      aircraft: (pickField(norm, 'aereo', 'aircraft') || '').toString().trim() || null,
+      tail: (pickField(norm, 'tail number', 'tail') || '').toString().trim() || null,
+      km: parseNumField(pickField(norm, 'km')),
+      price: parseNumField(pickField(norm, 'prezzo (€)', 'prezzo', 'price')),
+      note: (pickField(norm, 'note') || '').toString().trim() || null,
+      extra: null
+    };
+
+    const key = `${flight.date}|${flight.from}|${flight.to}|${flight.company}`;
+    if (existingKeys.has(key)) { duplicates.push(flight); return; }
+    existingKeys.add(key); // evita doppioni anche all'interno dello stesso file
+    toImport.push(flight);
+  });
+
+  if (!toImport.length) {
+    await showInfoModal('Importazione', `<div style="text-align:center;padding:8px 0;">Nessun volo nuovo da importare.${duplicates.length?`<br/>${duplicates.length} già presenti (saltati).`:''}${invalid.length?`<br/><span style="color:var(--coral)">${invalid.length} righe con dati mancanti/non validi.</span>`:''}</div>`);
+    return;
+  }
+
+  const previewHtml = toImport.slice(0, 12).map(f => `
+    <div class="tail-flight-row">
+      <span class="tail-flight-date">${f.date.split('-').reverse().join('/')}</span>
+      <span class="tail-flight-route">${f.from} → ${f.to}</span>
+      <span class="tail-flight-company">${f.company}</span>
+    </div>`).join('');
+  const moreNote = toImport.length > 12 ? `<div style="text-align:center;font-size:11px;color:var(--text-faint);margin-top:8px;">…e altri ${toImport.length - 12}</div>` : '';
+  const skipNote = (duplicates.length || invalid.length)
+    ? `<div style="font-size:11px;color:var(--text-faint);margin-top:10px;">${duplicates.length ? `${duplicates.length} già presenti (saltati). ` : ''}${invalid.length ? `${invalid.length} righe non valide (saltate).` : ''}</div>`
+    : '';
+
+  const confirmed = await showConfirmModal(
+    `Importare ${toImport.length} vol${toImport.length===1?'o':'i'}?`,
+    `<div class="tail-flight-list">${previewHtml}</div>${moreNote}${skipNote}`,
+    'Importa'
+  );
+  if (!confirmed) return;
+
+  const ok = await requirePin();
+  if (!ok) return;
+
+  try {
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient.from('flights').insert(toImport.map(flightToRow)).select();
+      if (error) throw error;
+      (data || []).forEach(row => flights.push(rowToFlight(row)));
+    } else {
+      toImport.forEach(f => flights.push(f));
+    }
+  } catch (err) {
+    console.error('Errore importazione massiva', err);
+    await showInfoModal('Errore', '<div style="text-align:center;padding:8px 0;color:var(--coral)">Importazione fallita — controlla la connessione e riprova.</div>');
+    return;
+  }
+
+  render();
+  resolveUnknownAirports().then(changed => { if (changed) render(); });
+  await showInfoModal('Importazione completata', `<div style="text-align:center;padding:8px 0;">✓ ${toImport.length} vol${toImport.length===1?'o':'i'} importat${toImport.length===1?'o':'i'} e sincronizzat${toImport.length===1?'o':'i'}</div>`);
+}
+
 function renderTimeline() {
   const list = getFilteredFlights();
   const idxMap = list.map(f => flights.indexOf(f));
@@ -947,6 +1147,9 @@ function renderTimeline() {
         <div class="panel-title"><span class="dot"></span>I tuoi voli (${list.length})</div>
         <div class="panel-head-actions">
           <button class="export-btn" id="export-backup" title="Scarica un file Excel con tutti i voli">⬇ Esporta backup</button>
+          <button class="export-btn" id="repair-data" title="Recupera tail/prezzo mancanti dall'importazione originale">🔧 Ripristina dati</button>
+          <button class="export-btn" id="import-data" title="Importa in blocco un file Excel con più voli">⬆ Importa Excel</button>
+          <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none"/>
           <button class="add-btn" id="toggle-add">+ Aggiungi volo</button>
         </div>
       </div>
@@ -1074,6 +1277,12 @@ function bindEvents(mapFlights) {
   const toggleBtn = root.querySelector('#toggle-add');
   const exportBtn = root.querySelector('#export-backup');
   if (exportBtn) exportBtn.addEventListener('click', exportBackupXlsx);
+  const repairBtn = root.querySelector('#repair-data');
+  if (repairBtn) repairBtn.addEventListener('click', repairMissingData);
+  const importBtn = root.querySelector('#import-data');
+  const importInput = root.querySelector('#import-file-input');
+  if (importBtn) importBtn.addEventListener('click', triggerImportFile);
+  if (importInput) importInput.addEventListener('change', handleImportFile);
   const addForm = root.querySelector('#add-form');
   if (toggleBtn) {
     toggleBtn.addEventListener('click', async () => {
