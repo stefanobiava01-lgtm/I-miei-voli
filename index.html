@@ -50,9 +50,10 @@
   #flighty-root .sync-badge.sync-off { color: var(--coral); }
 
   #flighty-root .stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 22px; }
-  #flighty-root .stat-cell { background: var(--bg-panel); padding: 16px 16px; position: relative; }
+  #flighty-root .stat-cell { background: var(--bg-panel); padding: 16px 16px; position: relative; text-align: center; }
   #flighty-root .stat-cell .v { font-size: 24px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.01em; }
   #flighty-root .stat-cell .l { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .09em; margin-top: 4px; }
+  #flighty-root .stat-sub { text-transform: none; letter-spacing: normal; opacity: .75; }
   #flighty-root .stat-cell .accent-teal { color: var(--teal); }
   #flighty-root .stat-cell .accent-gold { color: var(--gold); }
   #flighty-root .stat-cell .accent-coral { color: var(--coral); }
@@ -116,6 +117,13 @@
   #flighty-root .rank-bar-track { width: 80px; height: 5px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; flex-shrink:0; }
   #flighty-root .rank-bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--gold)); border-radius: 3px; }
   #flighty-root .rank-val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); width: 26px; text-align: right; flex-shrink:0; }
+  #flighty-root .rank-val-dual { width: 108px; flex-shrink:0; display: flex; gap: 4px; align-items: center; justify-content: flex-end; white-space: nowrap; }
+  #flighty-root .rank-val-sep { color: var(--text-faint); }
+  #flighty-root .rank-val-primary { color: var(--teal); font-weight: 700; }
+  #flighty-root .sort-toggle { display:flex; gap: 4px; }
+  #flighty-root .sort-btn { background: var(--bg-panel-2); border: 1px solid var(--line); color: var(--text-faint); font-size: 10.5px; padding: 4px 9px; border-radius: 12px; cursor: pointer; transition: all .15s; }
+  #flighty-root .sort-btn:hover { color: var(--text); }
+  #flighty-root .sort-btn.active { background: var(--teal); border-color: var(--teal); color: #061214; font-weight: 600; }
 
   #flighty-root .year-chart { display: flex; align-items: flex-end; gap: 5px; height: 110px; padding-top: 10px; overflow-x: auto; }
   #flighty-root .year-bar-col { flex:1; min-width: 22px; display:flex; flex-direction:column; align-items:center; justify-content: flex-end; height: 100%; }
@@ -380,6 +388,7 @@ let flights = [];
 let currentFilter = 'all';   // quick date-range chip on timeline
 let searchTerm = '';
 let globalFilters = { year: null, airport: null, company: null, aircraft: null };
+let aircraftSortBy = 'count'; // 'count' | 'km' — ordinamento del box "Tipologia aereo"
 let mapStyle = 'satellite'; // 'satellite' | 'dark'
 let syncMode = 'cloud'; // 'cloud' | 'offline'
 let editingFlightId = null; // uuid of flight currently being edited, or null when adding new
@@ -424,6 +433,7 @@ async function loadFlights() {
   }
   render();
   resolveUnknownAirports().then(changed => { if (changed) render(); });
+  resolveUnknownAirlines().then(changed => { if (changed) render(); });
 }
 
 async function insertFlightRemote(flight) {
@@ -509,6 +519,48 @@ async function resolveUnknownAirports() {
     }
   });
   return changed;
+}
+
+// --- Ricerca compagnie aeree sconosciute in un database mondiale (OpenFlights) ---
+// Stesso principio degli aeroporti: se aggiungi una compagnia non tra quelle già note,
+// cerca automaticamente il suo codice IATA per mostrare il logo reale invece dell'icona generica.
+let openAirlinesDbPromise = null;
+function ensureAirlinesDB() {
+  if (openAirlinesDbPromise) return openAirlinesDbPromise;
+  openAirlinesDbPromise = fetch('https://raw.githubusercontent.com/jpatokal/openflights/master/data/airlines.dat')
+    .then(r => r.text())
+    .then(text => {
+      const db = {}; // nome compagnia (minuscolo) -> codice IATA
+      text.split('\n').forEach(line => {
+        if (!line.trim()) return;
+        const f = parseCsvLine(line);
+        const name = (f[1] || '').replace(/"/g, '').trim();
+        const iata = (f[3] || '').replace(/"/g, '').trim();
+        if (name && iata && iata.length === 2 && iata !== '\\N' && iata !== '-') {
+          db[name.toLowerCase()] = iata;
+        }
+      });
+      return db;
+    })
+    .catch(err => { console.error('Errore caricamento database compagnie aeree mondiale', err); return {}; });
+  return openAirlinesDbPromise;
+}
+async function resolveAirlineCode(companyName) {
+  if (!companyName || AIRLINE_IATA[companyName]) return AIRLINE_IATA[companyName] || null;
+  const db = await ensureAirlinesDB();
+  const key = companyName.toLowerCase().trim();
+  if (db[key]) { AIRLINE_IATA[companyName] = db[key]; return db[key]; }
+  // ricerca approssimata: es. "Ryanair" trova anche "Ryanair DAC" / "Ryanair UK"
+  const match = Object.keys(db).find(n => n.startsWith(key) || key.startsWith(n));
+  if (match) { AIRLINE_IATA[companyName] = db[match]; return db[match]; }
+  return null;
+}
+async function resolveUnknownAirlines() {
+  const names = new Set(flights.map(f => f.company).filter(Boolean));
+  const missing = [...names].filter(n => !AIRLINE_IATA[n]);
+  if (!missing.length) return false;
+  const results = await Promise.all(missing.map(n => resolveAirlineCode(n)));
+  return results.some(r => r);
 }
 
 function fmtNum(n, decimals) {
@@ -731,7 +783,7 @@ function renderStatStrip(stats) {
       </div>
       <div class="stat-cell"><div class="v accent-gold">${stats.totalFlights}</div><div class="l">Voli volati</div></div>
       <div class="stat-cell"><div class="v accent-teal">${fmtNum(stats.totalKm)}</div><div class="l">Km percorsi</div></div>
-      <div class="stat-cell"><div class="v">${fmtNum(stats.totalHours)}</div><div class="l">Ore di volo</div></div>
+      <div class="stat-cell"><div class="v">${fmtNum(stats.totalHours)}</div><div class="l">Ore di volo <span class="stat-sub">(${fmtNum(stats.totalHours/24,1)} gg)</span></div></div>
       <div class="stat-cell"><div class="v accent-coral">${stats.airportSet.size}</div><div class="l">Aeroporti</div></div>
       <div class="stat-cell"><div class="v accent-gold">${stats.countrySet.size}</div><div class="l">Paesi</div></div>
       <div class="stat-cell"><div class="v accent-teal">${stats.companySet.size}</div><div class="l">Compagnie</div></div>
@@ -769,6 +821,21 @@ function renderRankList(counts, activeVal, dim, labelFn) {
       <div class="rank-name">${labelFn ? labelFn(e[0]) : e[0]}</div>
       <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${(e[1]/max*100).toFixed(0)}%"></div></div>
       <div class="rank-val">${e[1]}</div>
+    </div>`).join('') || '<div class="empty-note">Nessun dato</div>';
+  return `<div class="rank-scroll">${rows}</div>`;
+}
+
+function renderAircraftRankList(counts, kmTotals, activeVal) {
+  const names = Object.keys(counts);
+  const sortKey = aircraftSortBy === 'km' ? (n => kmTotals[n] || 0) : (n => counts[n] || 0);
+  names.sort((a,b) => sortKey(b) - sortKey(a));
+  const maxVal = names.length ? sortKey(names[0]) || 1 : 1;
+  const rows = names.map((name, i) => `
+    <div class="rank-row clickable ${activeVal===name?'active':''}" data-dim="aircraft" data-val="${name.replace(/"/g,'&quot;')}">
+      <div class="rank-idx">${i+1}</div>
+      <div class="rank-name">${name}</div>
+      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${(sortKey(name)/maxVal*100).toFixed(0)}%"></div></div>
+      <div class="rank-val rank-val-dual"><span class="${aircraftSortBy==='count'?'rank-val-primary':''}">${counts[name]}</span><span class="rank-val-sep">·</span><span class="${aircraftSortBy==='km'?'rank-val-primary':''}">${fmtNum(kmTotals[name]||0)} km</span></div>
     </div>`).join('') || '<div class="empty-note">Nessun dato</div>';
   return `<div class="rank-scroll">${rows}</div>`;
 }
@@ -832,6 +899,11 @@ function renderRankPanels() {
     airportCounts[f.to] = (airportCounts[f.to]||0)+1;
   });
   const aircraftCounts = countBy(aircraftFlights, f => f.aircraft);
+  const aircraftKm = {};
+  aircraftFlights.forEach(f => {
+    if (!f.aircraft) return;
+    aircraftKm[f.aircraft] = (aircraftKm[f.aircraft] || 0) + (f.km || 0);
+  });
 
   return `
     <div class="cols">
@@ -850,8 +922,14 @@ function renderRankPanels() {
         ${renderRankList(airportCounts, globalFilters.airport, 'airport', code => `${getCountryFlag(airportInfo(code).country)} ${code} · ${airportInfo(code).city}`)}
       </div>
       <div class="panel">
-        <div class="panel-head"><div class="panel-title"><span class="dot"></span>Tipologia aereo</div></div>
-        ${renderRankList(aircraftCounts, globalFilters.aircraft, 'aircraft', null)}
+        <div class="panel-head">
+          <div class="panel-title"><span class="dot"></span>Tipologia aereo</div>
+          <div class="sort-toggle">
+            <button class="sort-btn ${aircraftSortBy==='count'?'active':''}" data-sort="count">Voli</button>
+            <button class="sort-btn ${aircraftSortBy==='km'?'active':''}" data-sort="km">Km</button>
+          </div>
+        </div>
+        ${renderAircraftRankList(aircraftCounts, aircraftKm, globalFilters.aircraft)}
       </div>
     </div>`;
 }
@@ -1180,6 +1258,14 @@ function bindEvents(mapFlights) {
     });
   });
 
+  // ordinamento box "Tipologia aereo" (Voli / Km)
+  root.querySelectorAll('.sort-btn[data-sort]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      aircraftSortBy = btn.getAttribute('data-sort');
+      render();
+    });
+  });
+
   // clear filter chips
   root.querySelectorAll('.filter-chip[data-clear]').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -1241,6 +1327,15 @@ function bindEvents(mapFlights) {
   }
   const cancelBtn = root.querySelector('#cancel-add');
   if (cancelBtn) cancelBtn.addEventListener('click', () => { addForm.classList.remove('open'); editingFlightId = null; });
+
+  // cerca il logo della compagnia appena scritta (se non già nota)
+  const companyInput = root.querySelector('#f-company');
+  if (companyInput) {
+    companyInput.addEventListener('blur', () => {
+      const name = companyInput.value.trim();
+      if (name && !AIRLINE_IATA[name]) resolveAirlineCode(name);
+    });
+  }
 
   // autocompila la città quando riconosce un codice IATA (noto o cercato nel database mondiale)
   ['f-from','f-to'].forEach(fieldId => {
