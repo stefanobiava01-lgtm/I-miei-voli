@@ -1,3 +1,4 @@
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -209,7 +210,7 @@
   /* --- Responsive: tablet --- */
   @media (max-width: 860px) {
     #flighty-root .wrap { padding: 20px 16px 48px; }
-    #flighty-root .stat-strip { grid-template-columns: repeat(3, 1fr); }
+    #flighty-root .stat-strip { grid-template-columns: repeat(4, 1fr); }
     #flighty-root .map-box { height: 380px; }
   }
 
@@ -934,66 +935,6 @@ function exportBackupXlsx() {
   XLSX.writeFile(wb, `backup_voli_${stamp}.xlsx`);
 }
 
-// Ripristina dati (tail number, prezzo, extra) persi per via di un vecchio bug nella
-// funzione di modifica che azzerava questi campi. Confronta con l'importazione originale
-// dall'Excel (SEED_FLIGHTS) e recupera SOLO i campi attualmente vuoti, senza mai
-// sovrascrivere un dato che l'utente ha inserito o modificato volontariamente.
-async function repairMissingData() {
-  const ok = await requirePin();
-  if (!ok) return;
-
-  const seedByKey = {};
-  SEED_FLIGHTS.forEach(sf => {
-    const key = `${sf.date}|${sf.from}|${sf.to}|${sf.company}`;
-    seedByKey[key] = sf;
-  });
-
-  const candidates = [];
-  flights.forEach(f => {
-    const key = `${f.date}|${f.from}|${f.to}|${f.company}`;
-    const seed = seedByKey[key];
-    if (!seed) return;
-    const patch = {};
-    if (!f.tail && seed.tail) patch.tail = seed.tail;
-    if ((f.price === null || f.price === undefined) && seed.price !== null && seed.price !== undefined) patch.price = seed.price;
-    if ((f.extra === null || f.extra === undefined) && seed.extra !== null && seed.extra !== undefined) patch.extra = seed.extra;
-    if (Object.keys(patch).length) candidates.push({ flight: f, patch });
-  });
-
-  if (!candidates.length) {
-    await showInfoModal('Ripristino dati', '<div style="text-align:center;padding:8px 0;">Nessun dato mancante da ripristinare — tutto in ordine ✓</div>');
-    return;
-  }
-
-  const listHtml = candidates.map(c => `
-    <div class="tail-flight-row">
-      <span class="tail-flight-date">${c.flight.date.split('-').reverse().join('/')}</span>
-      <span class="tail-flight-route">${c.flight.from} → ${c.flight.to}</span>
-      <span class="tail-flight-company">${Object.keys(c.patch).join(', ')}</span>
-    </div>`).join('');
-  const confirmed = await showConfirmModal(
-    `Ripristinare ${candidates.length} vol${candidates.length===1?'o':'i'}?`,
-    `Questi voli hanno dati mancanti recuperabili dall'importazione originale:<div class="tail-flight-list" style="margin-top:10px;max-height:200px;overflow-y:auto;">${listHtml}</div>`,
-    'Ripristina'
-  );
-  if (!confirmed) return;
-
-  let done = 0, failed = 0;
-  for (const c of candidates) {
-    try {
-      const merged = { ...c.flight, ...c.patch };
-      const updated = await updateFlightRemote(c.flight.id, merged);
-      const idx = flights.findIndex(f => f.id === c.flight.id);
-      if (idx >= 0) flights[idx] = updated;
-      done++;
-    } catch (err) {
-      console.error('Errore ripristino volo', c.flight.id, err);
-      failed++;
-    }
-  }
-  render();
-  await showInfoModal('Ripristino completato', `<div style="text-align:center;padding:8px 0;">✓ ${done} vol${done===1?'o':'i'} ripristinat${done===1?'o':'i'}${failed?`<br/><span style="color:var(--coral)">${failed} falliti (controlla la connessione)</span>`:''}</div>`);
-}
 
 // --- Importazione massiva da Excel ---
 // Riconosce le stesse colonne del backup che si scarica con "Esporta backup",
@@ -1147,7 +1088,6 @@ function renderTimeline() {
         <div class="panel-title"><span class="dot"></span>I tuoi voli (${list.length})</div>
         <div class="panel-head-actions">
           <button class="export-btn" id="export-backup" title="Scarica un file Excel con tutti i voli">⬇ Esporta backup</button>
-          <button class="export-btn" id="repair-data" title="Recupera tail/prezzo mancanti dall'importazione originale">🔧 Ripristina dati</button>
           <button class="export-btn" id="import-data" title="Importa in blocco un file Excel con più voli">⬆ Importa Excel</button>
           <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none"/>
           <button class="add-btn" id="toggle-add">+ Aggiungi volo</button>
@@ -1277,8 +1217,6 @@ function bindEvents(mapFlights) {
   const toggleBtn = root.querySelector('#toggle-add');
   const exportBtn = root.querySelector('#export-backup');
   if (exportBtn) exportBtn.addEventListener('click', exportBackupXlsx);
-  const repairBtn = root.querySelector('#repair-data');
-  if (repairBtn) repairBtn.addEventListener('click', repairMissingData);
   const importBtn = root.querySelector('#import-data');
   const importInput = root.querySelector('#import-file-input');
   if (importBtn) importBtn.addEventListener('click', triggerImportFile);
