@@ -74,9 +74,6 @@
   #flighty-root .rank-row.clickable:hover { background: rgba(255,255,255,.03); }
   #flighty-root .rank-row.clickable.active { background: rgba(79,216,201,.1); }
   #flighty-root .rank-row.clickable.active .rank-name { color: var(--teal); font-weight: 600; }
-  #flighty-root .year-bar-col.clickable { cursor: pointer; }
-  #flighty-root .year-bar-col.clickable.active .year-bar { background: linear-gradient(180deg, var(--gold), rgba(232,180,99,.3)); }
-  #flighty-root .year-bar-col.clickable.active .year-bar-lbl { color: var(--gold); font-weight: 600; }
 
   #flighty-root .map-toggle { display:flex; gap: 6px; }
   #flighty-root .map-toggle button { background: var(--bg-panel-2); border: 1px solid var(--line); color: var(--text-dim); font-size: 11.5px; padding: 6px 11px; border-radius: 16px; cursor: pointer; transition: all .15s; }
@@ -117,19 +114,14 @@
   #flighty-root .rank-bar-track { width: 80px; height: 5px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; flex-shrink:0; }
   #flighty-root .rank-bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--gold)); border-radius: 3px; }
   #flighty-root .rank-val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); width: 26px; text-align: right; flex-shrink:0; }
-  #flighty-root .rank-val-dual { width: 108px; flex-shrink:0; display: flex; gap: 4px; align-items: center; justify-content: flex-end; white-space: nowrap; }
-  #flighty-root .rank-val-sep { color: var(--text-faint); }
+  #flighty-root .rank-val-count { width: 28px; flex-shrink:0; text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); }
+  #flighty-root .rank-val-km { width: 78px; flex-shrink:0; text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); }
   #flighty-root .rank-val-primary { color: var(--teal); font-weight: 700; }
   #flighty-root .sort-toggle { display:flex; gap: 4px; }
   #flighty-root .sort-btn { background: var(--bg-panel-2); border: 1px solid var(--line); color: var(--text-faint); font-size: 10.5px; padding: 4px 9px; border-radius: 12px; cursor: pointer; transition: all .15s; }
   #flighty-root .sort-btn:hover { color: var(--text); }
   #flighty-root .sort-btn.active { background: var(--teal); border-color: var(--teal); color: #061214; font-weight: 600; }
 
-  #flighty-root .year-chart { display: flex; align-items: flex-end; gap: 5px; height: 110px; padding-top: 10px; overflow-x: auto; }
-  #flighty-root .year-bar-col { flex:1; min-width: 22px; display:flex; flex-direction:column; align-items:center; justify-content: flex-end; height: 100%; }
-  #flighty-root .year-bar { width: 100%; max-width: 24px; background: linear-gradient(180deg, var(--teal), rgba(79,216,201,.25)); border-radius: 4px 4px 0 0; min-height: 3px; }
-  #flighty-root .year-bar-lbl { font-size: 9.5px; color: var(--text-faint); margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
-  #flighty-root .year-bar-val { font-size: 9.5px; color: var(--text-dim); margin-bottom: 3px; font-family: 'IBM Plex Mono', monospace; }
 
   #flighty-root .timeline-controls { display:flex; gap:8px; margin-bottom: 14px; flex-wrap: wrap; align-items:center; }
   #flighty-root .chip { padding: 6px 12px; border-radius: 20px; border: 1px solid var(--line); background: var(--bg-panel-2); font-size: 12px; color: var(--text-dim); cursor: pointer; transition: all .15s; }
@@ -414,6 +406,9 @@ let currentFilter = 'all';   // quick date-range chip on timeline
 let searchTerm = '';
 let globalFilters = { year: null, airport: null, company: null, aircraft: null };
 let aircraftSortBy = 'count'; // 'count' | 'km' — ordinamento del box "Tipologia aereo"
+let companySortBy = 'count'; // 'count' | 'km' — ordinamento del box "Compagnie"
+let yearSortBy = 'count'; // 'count' | 'km' | 'year' — ordinamento del box "Voli per anno"
+let yearSortDir = 'desc'; // 'asc' | 'desc' — direzione quando yearSortBy === 'year'
 let mapStyle = 'satellite'; // 'satellite' | 'dark'
 let syncMode = 'cloud'; // 'cloud' | 'offline'
 let editingFlightId = null; // uuid of flight currently being edited, or null when adding new
@@ -850,17 +845,22 @@ function renderRankList(counts, activeVal, dim, labelFn) {
   return `<div class="rank-scroll">${rows}</div>`;
 }
 
-function renderAircraftRankList(counts, kmTotals, activeVal) {
+function renderDualRankList(counts, kmTotals, activeVal, dim, sortBy, labelFn, sortDir) {
   const names = Object.keys(counts);
-  const sortKey = aircraftSortBy === 'km' ? (n => kmTotals[n] || 0) : (n => counts[n] || 0);
-  names.sort((a,b) => sortKey(b) - sortKey(a));
-  const maxVal = names.length ? sortKey(names[0]) || 1 : 1;
+  const barKey = sortBy === 'km' ? (n => kmTotals[n] || 0) : (n => counts[n] || 0);
+  if (sortBy === 'year') {
+    names.sort((a, b) => sortDir === 'asc' ? (parseInt(a,10) - parseInt(b,10)) : (parseInt(b,10) - parseInt(a,10)));
+  } else {
+    names.sort((a, b) => barKey(b) - barKey(a));
+  }
+  const maxVal = names.length ? Math.max(...names.map(barKey)) || 1 : 1;
   const rows = names.map((name, i) => `
-    <div class="rank-row clickable ${activeVal===name?'active':''}" data-dim="aircraft" data-val="${name.replace(/"/g,'&quot;')}">
+    <div class="rank-row clickable ${activeVal===name?'active':''}" data-dim="${dim}" data-val="${name.replace(/"/g,'&quot;')}">
       <div class="rank-idx">${i+1}</div>
-      <div class="rank-name">${name}</div>
-      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${(sortKey(name)/maxVal*100).toFixed(0)}%"></div></div>
-      <div class="rank-val rank-val-dual"><span class="${aircraftSortBy==='count'?'rank-val-primary':''}">${counts[name]}</span><span class="rank-val-sep">·</span><span class="${aircraftSortBy==='km'?'rank-val-primary':''}">${fmtNum(kmTotals[name]||0)} km</span></div>
+      <div class="rank-name">${labelFn ? labelFn(name) : name}</div>
+      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${(barKey(name)/maxVal*100).toFixed(0)}%"></div></div>
+      <div class="rank-val-count${sortBy==='count'?' rank-val-primary':''}">${counts[name]}</div>
+      <div class="rank-val-km${sortBy==='km'?' rank-val-primary':''}">${fmtNum(kmTotals[name]||0)} km</div>
     </div>`).join('') || '<div class="empty-note">Nessun dato</div>';
   return `<div class="rank-scroll">${rows}</div>`;
 }
@@ -908,16 +908,18 @@ function renderRankPanels() {
   const aircraftFlights = applyGlobalFilters(base, 'aircraft');
 
   const yearCounts = countBy(yearsFlights, f => f.date.slice(0,4));
-  const years = Object.keys(yearCounts).sort();
-  const maxYear = Math.max(...Object.values(yearCounts), 1);
-  const yearChart = years.map(y => `
-    <div class="year-bar-col clickable ${globalFilters.year===y?'active':''}" data-dim="year" data-val="${y}">
-      <div class="year-bar-val">${yearCounts[y]}</div>
-      <div class="year-bar" style="height:${(yearCounts[y]/maxYear*100).toFixed(0)}%"></div>
-      <div class="year-bar-lbl">${y.slice(2)}</div>
-    </div>`).join('') || '<div class="empty-note">Nessun dato</div>';
+  const yearKm = {};
+  yearsFlights.forEach(f => {
+    const y = f.date.slice(0,4);
+    yearKm[y] = (yearKm[y] || 0) + (f.km || 0);
+  });
 
   const companyCounts = countBy(companyFlights, f => f.company);
+  const companyKm = {};
+  companyFlights.forEach(f => {
+    if (!f.company) return;
+    companyKm[f.company] = (companyKm[f.company] || 0) + (f.km || 0);
+  });
   const airportCounts = {};
   airportFlights.forEach(f => {
     airportCounts[f.from] = (airportCounts[f.from]||0)+1;
@@ -933,12 +935,25 @@ function renderRankPanels() {
   return `
     <div class="cols">
       <div class="panel">
-        <div class="panel-head"><div class="panel-title"><span class="dot"></span>Voli per anno</div></div>
-        <div class="year-chart">${yearChart}</div>
+        <div class="panel-head">
+          <div class="panel-title"><span class="dot"></span>Voli per anno</div>
+          <div class="sort-toggle">
+            <button class="sort-btn ${yearSortBy==='year'?'active':''}" data-sortdim="year" data-sort="year">Anno ${yearSortBy==='year'?(yearSortDir==='asc'?'↑':'↓'):''}</button>
+            <button class="sort-btn ${yearSortBy==='count'?'active':''}" data-sortdim="year" data-sort="count">Voli</button>
+            <button class="sort-btn ${yearSortBy==='km'?'active':''}" data-sortdim="year" data-sort="km">Km</button>
+          </div>
+        </div>
+        ${renderDualRankList(yearCounts, yearKm, globalFilters.year, 'year', yearSortBy, null, yearSortDir)}
       </div>
       <div class="panel">
-        <div class="panel-head"><div class="panel-title"><span class="dot"></span>Compagnie</div></div>
-        ${renderRankList(companyCounts, globalFilters.company, 'company', name => `${getAirlineLogo(name)} ${name}`)}
+        <div class="panel-head">
+          <div class="panel-title"><span class="dot"></span>Compagnie</div>
+          <div class="sort-toggle">
+            <button class="sort-btn ${companySortBy==='count'?'active':''}" data-sortdim="company" data-sort="count">Voli</button>
+            <button class="sort-btn ${companySortBy==='km'?'active':''}" data-sortdim="company" data-sort="km">Km</button>
+          </div>
+        </div>
+        ${renderDualRankList(companyCounts, companyKm, globalFilters.company, 'company', companySortBy, name => `${getAirlineLogo(name)} ${name}`)}
       </div>
     </div>
     <div class="cols">
@@ -950,11 +965,11 @@ function renderRankPanels() {
         <div class="panel-head">
           <div class="panel-title"><span class="dot"></span>Tipologia aereo</div>
           <div class="sort-toggle">
-            <button class="sort-btn ${aircraftSortBy==='count'?'active':''}" data-sort="count">Voli</button>
-            <button class="sort-btn ${aircraftSortBy==='km'?'active':''}" data-sort="km">Km</button>
+            <button class="sort-btn ${aircraftSortBy==='count'?'active':''}" data-sortdim="aircraft" data-sort="count">Voli</button>
+            <button class="sort-btn ${aircraftSortBy==='km'?'active':''}" data-sortdim="aircraft" data-sort="km">Km</button>
           </div>
         </div>
-        ${renderAircraftRankList(aircraftCounts, aircraftKm, globalFilters.aircraft)}
+        ${renderDualRankList(aircraftCounts, aircraftKm, globalFilters.aircraft, 'aircraft', aircraftSortBy, null)}
       </div>
     </div>`;
 }
@@ -1283,10 +1298,21 @@ function bindEvents(mapFlights) {
     });
   });
 
-  // ordinamento box "Tipologia aereo" (Voli / Km)
+  // ordinamento box "Voli per anno", "Compagnie" e "Tipologia aereo" (Voli / Km)
   root.querySelectorAll('.sort-btn[data-sort]').forEach(btn => {
     btn.addEventListener('click', () => {
-      aircraftSortBy = btn.getAttribute('data-sort');
+      const sortDim = btn.getAttribute('data-sortdim');
+      const val = btn.getAttribute('data-sort');
+      if (sortDim === 'company') companySortBy = val;
+      else if (sortDim === 'aircraft') aircraftSortBy = val;
+      else if (sortDim === 'year') {
+        if (val === 'year' && yearSortBy === 'year') {
+          yearSortDir = yearSortDir === 'asc' ? 'desc' : 'asc';
+        } else if (val === 'year') {
+          yearSortDir = 'desc';
+        }
+        yearSortBy = val;
+      }
       render();
     });
   });
