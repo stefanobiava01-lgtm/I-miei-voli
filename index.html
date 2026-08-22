@@ -45,6 +45,18 @@
   #flighty-root .header-right { text-align: right; }
   #flighty-root .header-right .num { font-size: 30px; font-weight: 700; color: var(--gold); font-family: 'Space Grotesk', sans-serif; line-height:1; }
   #flighty-root .header-right .lbl { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .1em; margin-top:4px; }
+  #flighty-root .user-badge { font-size: 10px; color: var(--text-faint); margin-top: 6px; }
+  #flighty-root .logout-link { color: var(--coral); cursor: pointer; text-decoration: underline; }
+  #flighty-root .logout-link:hover { color: #ff9382; }
+
+  #flighty-root .login-wrap { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; }
+  #flighty-root .login-box { text-align: center; max-width: 340px; }
+  #flighty-root .login-title { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+  #flighty-root .login-sub { font-size: 13.5px; color: var(--text-dim); margin-bottom: 28px; }
+  #flighty-root .google-btn { display: inline-flex; align-items: center; gap: 10px; background: #fff; color: #1f1f1f; border: none; padding: 12px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform .1s, box-shadow .15s; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  #flighty-root .google-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  #flighty-root .google-btn:disabled { opacity: .7; cursor: default; transform: none; }
+  #flighty-root .login-note { font-size: 11.5px; color: var(--text-faint); margin-top: 22px; line-height: 1.5; }
   #flighty-root .sync-badge { font-size: 10.5px; margin-top: 6px; font-weight: 600; letter-spacing: .03em; }
   #flighty-root .sync-badge.sync-ok { color: var(--teal); }
   #flighty-root .sync-badge.sync-off { color: var(--coral); }
@@ -338,26 +350,7 @@ const supabaseClient = (typeof window.supabase !== 'undefined')
   : null;
 
 const AIRCRAFT_ICON = '✈';
-
-// --- Protezione PIN per modifiche (aggiunta/eliminazione voli) ---
-const PIN_HASH = '07361d83fcd20a07f7b0daa99765793f088908ef70c715ee3c0b6821e31f2dd0';
-async function sha256Hex(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-let pinUnlockedUntil = 0; // timestamp: once entered correctly, stays unlocked for a short session window
-async function requirePin() {
-  if (Date.now() < pinUnlockedUntil) return true;
-  const entered = prompt('Inserisci il PIN per modificare i voli:');
-  if (entered === null) return false;
-  const hash = await sha256Hex(entered.trim());
-  if (hash === PIN_HASH) {
-    pinUnlockedUntil = Date.now() + 10 * 60 * 1000; // resta sbloccato 10 minuti
-    return true;
-  }
-  alert('PIN errato.');
-  return false;
-}
+let currentUser = null; // utente autenticato (Google, via Supabase Auth)
 
 function showConfirmModal(title, message, confirmLabel) {
   return new Promise(resolve => {
@@ -432,6 +425,67 @@ function flightToRow(f) {
     aircraft: f.aircraft, tail: f.tail || null,
     km: f.km, price: f.price, note: f.note, extra: f.extra
   };
+}
+
+function renderLoginScreen() {
+  root.innerHTML = `
+    <div class="bg-grid"></div>
+    <div class="login-wrap">
+      <div class="login-box">
+        <div class="login-title">✈️ I miei voli</div>
+        <div class="login-sub">Accedi per vedere e gestire i tuoi voli</div>
+        <button class="google-btn" id="google-signin">
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.91c1.7-1.57 2.69-3.88 2.69-6.64z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.27c-.81.54-1.84.86-3.05.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.34C2.44 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.95 10.69c-.18-.54-.28-1.11-.28-1.69s.1-1.15.28-1.69V4.97H.96A8.996 8.996 0 000 9c0 1.45.35 2.83.96 4.03l2.99-2.34z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.97l2.99 2.34C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+          Accedi con Google
+        </button>
+        <div class="login-note">Solo tu puoi accedere ai tuoi voli — l'accesso richiede il login con l'account Google autorizzato.</div>
+      </div>
+    </div>`;
+  const btn = root.querySelector('#google-signin');
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Reindirizzamento…';
+      try {
+        await supabaseClient.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: window.location.href }
+        });
+      } catch (err) {
+        console.error('Errore login Google', err);
+        btn.disabled = false;
+      }
+    });
+  }
+}
+
+async function initAuth() {
+  if (!supabaseClient) {
+    flights = SEED_FLIGHTS.slice();
+    syncMode = 'offline';
+    render();
+    return;
+  }
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    loadFlights();
+  } else {
+    renderLoginScreen();
+  }
+  supabaseClient.auth.onAuthStateChange((event, newSession) => {
+    if (event === 'SIGNED_IN' && newSession) {
+      currentUser = newSession.user;
+      loadFlights();
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      renderLoginScreen();
+    }
+  });
+}
+
+async function logout() {
+  if (supabaseClient) await supabaseClient.auth.signOut();
 }
 
 async function loadFlights() {
@@ -1171,9 +1225,6 @@ async function handleImportFile(e) {
   );
   if (!confirmed) return;
 
-  const ok = await requirePin();
-  if (!ok) return;
-
   try {
     if (supabaseClient) {
       const { data, error } = await supabaseClient.from('flights').insert(toImport.map(flightToRow)).select();
@@ -1268,6 +1319,7 @@ function render() {
         <div class="header-right">
           <div class="num">${totalEverFlown}</div>
           <div class="lbl">voli totali</div>
+          ${currentUser ? `<div class="user-badge">${currentUser.email || ''} · <span id="logout-link" class="logout-link">Esci</span></div>` : ''}
         </div>
       </div>
       ${renderFilterBar()}
@@ -1281,6 +1333,9 @@ function render() {
 }
 
 function bindEvents(mapFlights) {
+  const logoutLink = root.querySelector('#logout-link');
+  if (logoutLink) logoutLink.addEventListener('click', logout);
+
   // filter chips (timeline quick range)
   root.querySelectorAll('.chip[data-filter]').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -1362,8 +1417,6 @@ function bindEvents(mapFlights) {
   if (toggleBtn) {
     toggleBtn.addEventListener('click', async () => {
       if (!addForm.classList.contains('open')) {
-        const ok = await requirePin();
-        if (!ok) return;
         editingFlightId = null;
         resetFormFields();
         root.querySelector('#save-flight').textContent = 'Salva volo';
@@ -1507,8 +1560,6 @@ function resetFormFields() {
 }
 
 async function openEditForm(idx) {
-  const ok = await requirePin();
-  if (!ok) return;
   const f = flights[idx];
   if (!f) return;
   editingFlightId = f.id;
@@ -1562,8 +1613,6 @@ function bindPassDelete() {
   root.querySelectorAll('[data-del]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const ok = await requirePin();
-      if (!ok) return;
       const idx = parseInt(btn.getAttribute('data-del'), 10);
       const target = flights[idx];
       if (!target) return;
@@ -1586,7 +1635,7 @@ function bindPassDelete() {
   });
 }
 
-loadFlights();
+initAuth();
 
 
 })();
