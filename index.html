@@ -190,6 +190,7 @@
   #flighty-root .pass-stub .date-d { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; color: var(--gold); line-height:1; }
   #flighty-root .pass-stub .date-m { font-size: 9.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
   #flighty-root .pass-stub .date-y { font-size: 9px; color: var(--text-faint); margin-top: 1px; }
+  #flighty-root .stub-seat { margin-top: 8px; padding: 3px 9px; border-radius: 5px; background: rgba(232,180,99,.15); border: 1px solid rgba(232,180,99,.35); color: var(--gold); font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
   #flighty-root .pass-stub::before, #flighty-root .pass-stub::after { content:''; position:absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); left: -6px; }
   #flighty-root .pass-stub::before { top: -6px; }
   #flighty-root .pass-stub::after { bottom: -6px; }
@@ -208,6 +209,7 @@
   #flighty-root .field label { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .07em; display:block; margin-bottom: 5px; }
   #flighty-root .field input, #flighty-root .field select { width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text); padding: 9px 10px; border-radius: 7px; font-size: 13px; font-family: inherit; }
   #flighty-root .field input:focus, #flighty-root .field select:focus { outline: none; border-color: var(--teal); }
+  #flighty-root .field input.auto-filled { border-color: rgba(79,216,201,.5); color: var(--teal); }
   #flighty-root .form-actions { display:flex; gap: 10px; margin-top: 14px; align-items: center; }
   #flighty-root .btn-primary { background: var(--gold); color: #1a1204; border:none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor:pointer; }
   #flighty-root .btn-ghost { background: transparent; color: var(--text-faint); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; font-size: 13px; cursor:pointer; }
@@ -422,7 +424,7 @@ function rowToFlight(row) {
     id: row.id, date: row.date, company: row.company,
     from: row.from_code, fromCity: row.from_city,
     to: row.to_code, toCity: row.to_city,
-    aircraft: row.aircraft, tail: row.tail,
+    aircraft: row.aircraft, tail: row.tail, seat: row.seat,
     km: row.km, price: row.price, note: row.note, extra: row.extra
   };
 }
@@ -432,7 +434,7 @@ function flightToRow(f) {
     date: f.date, company: f.company,
     from_code: f.from, from_city: f.fromCity,
     to_code: f.to, to_city: f.toCity,
-    aircraft: f.aircraft, tail: f.tail || null,
+    aircraft: f.aircraft, tail: f.tail || null, seat: f.seat || null,
     km: f.km, price: f.price, note: f.note, extra: f.extra
   };
 }
@@ -542,6 +544,18 @@ async function updateFlightRemote(id, flight) {
 
 function airportInfo(code) {
   return AIRPORTS[code] || { city: code, country: '', lat: null, lon: null };
+}
+
+// Distanza ortodromica (great-circle) tra due punti GPS, la stessa logica usata dagli aerei
+// per calcolare la rotta più breve tra due aeroporti. Restituisce i km arrotondati.
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // raggio terrestre medio in km
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return Math.round(R * c);
 }
 
 // --- Ricerca aeroporti sconosciuti in un database mondiale (OpenFlights) ---
@@ -1077,6 +1091,7 @@ function renderPass(f, idx) {
         <div class="date-d">${day}</div>
         <div class="date-m">${month}</div>
         <div class="date-y">${year}</div>
+        ${f.seat ? `<div class="stub-seat">${f.seat}</div>` : ''}
       </div>
       <button class="pass-edit" data-edit="${idx}" title="Modifica volo">✎</button>
       <button class="pass-del" data-del="${idx}" title="Elimina volo">✕</button>
@@ -1106,6 +1121,7 @@ function exportBackupXlsx() {
     'Città arrivo': f.toCity || '',
     'Aereo': f.aircraft || '',
     'Tail Number': f.tail || '',
+    'Posto': f.seat || '',
     'Km': f.km || '',
     'Prezzo (€)': f.price || '',
     'Note': f.note || ''
@@ -1200,6 +1216,7 @@ async function handleImportFile(e) {
       toCity: (pickField(norm, 'città arrivo', 'citta arrivo', 'tocity') || '').toString().trim() || null,
       aircraft: (pickField(norm, 'aereo', 'aircraft') || '').toString().trim() || null,
       tail: (pickField(norm, 'tail number', 'tail') || '').toString().trim() || null,
+      seat: (pickField(norm, 'posto', 'seat') || '').toString().trim() || null,
       km: parseNumField(pickField(norm, 'km')),
       price: parseNumField(pickField(norm, 'prezzo (€)', 'prezzo', 'price')),
       note: (pickField(norm, 'note') || '').toString().trim() || null,
@@ -1293,7 +1310,8 @@ function renderTimeline() {
           <div class="field"><label>Città arrivo</label><input type="text" id="f-tocity" placeholder="es. Valencia"/></div>
           <div class="field"><label>Aereo</label><input type="text" id="f-aircraft" placeholder="es. B737-800" list="aircraft-options"/></div>
           <div class="field"><label>Tail number</label><input type="text" id="f-tail" placeholder="es. I-NEOU" style="text-transform:uppercase"/></div>
-          <div class="field"><label>Distanza (km)</label><input type="number" id="f-km" placeholder="es. 1200"/></div>
+          <div class="field"><label>Posto</label><input type="text" id="f-seat" placeholder="es. 12A" style="text-transform:uppercase"/></div>
+          <div class="field"><label>Distanza (km, auto)</label><input type="number" id="f-km" placeholder="calcolata da Da/A"/></div>
           <div class="field"><label>Prezzo (€)</label><input type="number" step="0.01" id="f-price" placeholder="es. 24.99"/></div>
           <div class="field"><label>Note</label><input type="text" id="f-note" placeholder="opzionale"/></div>
         </div>
@@ -1340,6 +1358,24 @@ function render() {
       <div class="footer-note">I dati vengono salvati online (sincronizzati su tutti i tuoi dispositivi) — aggiungi un volo qui sopra ogni volta che voli. Clicca anno / aeroporto / compagnia / aereo per filtrare tutta la dashboard.</div>
     </div>`;
   bindEvents(filteredForStats);
+}
+
+function tryAutoFillKm() {
+  const fromInput = root.querySelector('#f-from');
+  const toInput = root.querySelector('#f-to');
+  const kmInput = root.querySelector('#f-km');
+  if (!fromInput || !toInput || !kmInput) return;
+  if (kmInput.value.trim()) return; // non sovrascrive un valore già inserito manualmente
+
+  const from = fromInput.value.trim().toUpperCase();
+  const to = toInput.value.trim().toUpperCase();
+  if (!from || !to) return;
+
+  const a = AIRPORTS[from], b = AIRPORTS[to];
+  if (a && a.lat && b && b.lat) {
+    kmInput.value = haversineKm(a.lat, a.lon, b.lat, b.lon);
+    kmInput.classList.add('auto-filled');
+  }
 }
 
 function bindEvents(mapFlights) {
@@ -1442,6 +1478,9 @@ function bindEvents(mapFlights) {
   const cancelBtn = root.querySelector('#cancel-add');
   if (cancelBtn) cancelBtn.addEventListener('click', () => { addForm.classList.remove('open'); editingFlightId = null; });
 
+  const kmField = root.querySelector('#f-km');
+  if (kmField) kmField.addEventListener('input', () => kmField.classList.remove('auto-filled'));
+
   // cerca il logo della compagnia appena scritta (se non già nota)
   const companyInput = root.querySelector('#f-company');
   if (companyInput) {
@@ -1462,6 +1501,7 @@ function bindEvents(mapFlights) {
       const cityInput = root.querySelector('#'+cityId);
       if (AIRPORTS[code]) {
         if (cityInput && !cityInput.value.trim()) cityInput.value = AIRPORTS[code].city;
+        tryAutoFillKm();
         return;
       }
       const db = await ensureAirportsDB();
@@ -1469,6 +1509,7 @@ function bindEvents(mapFlights) {
         AIRPORTS[code] = { city: db[code].city, country: db[code].country, lat: db[code].lat, lon: db[code].lon };
         if (cityInput && !cityInput.value.trim()) cityInput.value = db[code].city;
       }
+      tryAutoFillKm();
     });
   });
 
@@ -1484,6 +1525,7 @@ function bindEvents(mapFlights) {
       const toCity = root.querySelector('#f-tocity').value.trim();
       const aircraft = root.querySelector('#f-aircraft').value.trim();
       const tail = root.querySelector('#f-tail').value.trim();
+      const seat = root.querySelector('#f-seat').value.trim();
       const kmVal = root.querySelector('#f-km').value;
       const priceVal = root.querySelector('#f-price').value;
       const note = root.querySelector('#f-note').value.trim();
@@ -1516,7 +1558,7 @@ function bindEvents(mapFlights) {
 
       const flightData = {
         date, company, from, fromCity: fromCity || AIRPORTS[from].city, to, toCity: toCity || AIRPORTS[to].city,
-        aircraft: aircraft || null, tail: tail || null,
+        aircraft: aircraft || null, tail: tail || null, seat: seat || null,
         km: kmVal ? parseFloat(kmVal) : null,
         price: priceVal ? parseFloat(priceVal) : null,
         note: note || null, extra: existingExtra ?? null
@@ -1561,7 +1603,7 @@ function bindEvents(mapFlights) {
 }
 
 function resetFormFields() {
-  ['f-date','f-company','f-from','f-fromcity','f-to','f-tocity','f-aircraft','f-tail','f-km','f-price','f-note'].forEach(id => {
+  ['f-date','f-company','f-from','f-fromcity','f-to','f-tocity','f-aircraft','f-tail','f-seat','f-km','f-price','f-note'].forEach(id => {
     const el = root.querySelector('#'+id);
     if (el) el.value = '';
   });
@@ -1582,6 +1624,7 @@ async function openEditForm(idx) {
   root.querySelector('#f-tocity').value = f.toCity || '';
   root.querySelector('#f-aircraft').value = f.aircraft || '';
   root.querySelector('#f-tail').value = f.tail || '';
+  root.querySelector('#f-seat').value = f.seat || '';
   root.querySelector('#f-km').value = f.km || '';
   root.querySelector('#f-price').value = f.price || '';
   root.querySelector('#f-note').value = f.note || '';
