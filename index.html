@@ -156,13 +156,20 @@
   #flighty-root .modal-actions { display:flex; gap: 10px; justify-content:center; }
   #flighty-root .btn-danger { background: var(--coral); color: #2a0f08; border:none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor:pointer; }
 
-  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: 176px; transition: border-color .15s; }
+  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: 218px; transition: border-color .15s; }
   #flighty-root .pass:hover { border-color: rgba(79,216,201,.35); }
-  #flighty-root .pass-main { padding: 14px 40px 14px 14px; display: flex; flex-direction: column; gap: 7px; min-width: 0; overflow: hidden; }
+  #flighty-root .pass-main { padding: 14px 40px 14px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow: hidden; }
+  #flighty-root .pass-line-airline { display:flex; align-items:center; font-size: 12.5px; }
   #flighty-root .pass-line-fixed { display:flex; gap: 8px 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; align-items: center; }
   #flighty-root .pass-line-fixed b { color: var(--text); font-weight: 500; }
-  #flighty-root .pass-airline { display:flex; align-items:center; }
-  #flighty-root .pass-line-extra { display:flex; gap: 6px 8px; align-items:flex-start; flex-wrap: wrap; min-height: 18px; max-height: 48px; overflow: hidden; row-gap: 5px; }
+  #flighty-root .pass-airline b { color: var(--text); font-weight: 600; }
+  #flighty-root .pass-line-price { display:flex; align-items:baseline; gap: 6px; flex-wrap: wrap; font-size: 11px; }
+  #flighty-root .pass-per100 { color: var(--text-faint); }
+  #flighty-root .price-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 8px; letter-spacing: .02em; white-space: nowrap; }
+  #flighty-root .price-badge-low { background: rgba(79,216,201,.18); color: var(--teal); }
+  #flighty-root .price-badge-mid { background: rgba(148,168,210,.14); color: var(--text-dim); }
+  #flighty-root .price-badge-high { background: rgba(240,117,90,.18); color: var(--coral); }
+  #flighty-root .pass-line-extra { display:flex; gap: 6px 8px; align-items:flex-start; flex-wrap: wrap; min-height: 6px; max-height: 30px; overflow: hidden; row-gap: 5px; }
   #flighty-root .pass-price { font-size: 12px; font-weight: 700; color: var(--teal); }
   #flighty-root .pass-tag { font-size: 9.5px; padding: 2px 7px; border-radius: 10px; background: rgba(240,117,90,.15); color: var(--coral); display:inline-block; width: fit-content; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #flighty-root .pass-tail { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; padding: 2px 7px; border-radius: 4px; background: rgba(148,168,210,.1); border: 1px solid var(--line); color: var(--text-dim); letter-spacing: .03em; white-space: nowrap; }
@@ -180,6 +187,7 @@
   #flighty-root .pass-del:hover { color: var(--coral); background: rgba(240,117,90,.1); }
   #flighty-root .pass-edit { position:absolute; top:6px; right:30px; background:none; border:none; color: var(--text-faint); cursor:pointer; font-size: 13px; padding: 2px 6px; border-radius:4px; line-height:1; z-index: 2; }
   #flighty-root .pass-edit:hover { color: var(--teal); background: rgba(79,216,201,.1); }
+  #flighty-root .pass-flightnum { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--text-faint); letter-spacing: .04em; margin-bottom: 2px; }
   #flighty-root .pass-route { display:flex; align-items:center; gap: 10px; }
   #flighty-root .pass-code { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: .02em; flex-shrink:0; }
   #flighty-root .pass-arrow { color: var(--teal); font-size: 12px; flex:1; display:flex; align-items:center; gap:6px; min-width: 20px;}
@@ -250,7 +258,7 @@
     #flighty-root .form-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     #flighty-root .field input, #flighty-root .field select { padding: 11px 10px; font-size: 14px; }
     #flighty-root .pass-list { grid-template-columns: 1fr; }
-    #flighty-root .pass { height: auto; min-height: 158px; }
+    #flighty-root .pass { height: auto; min-height: 200px; }
     #flighty-root .pass-del { top: 8px; right: 8px; font-size: 16px; padding: 6px 8px; }
     #flighty-root .pass-edit { top: 8px; right: 38px; font-size: 15px; padding: 6px 8px; }
     #flighty-root .pass-main { padding: 14px 68px 14px 14px; }
@@ -425,6 +433,7 @@ function rowToFlight(row) {
     from: row.from_code, fromCity: row.from_city,
     to: row.to_code, toCity: row.to_city,
     aircraft: row.aircraft, tail: row.tail, seat: row.seat,
+    flightNumber: row.flight_number,
     km: row.km, price: row.price, note: row.note, extra: row.extra
   };
 }
@@ -435,6 +444,7 @@ function flightToRow(f) {
     from_code: f.from, from_city: f.fromCity,
     to_code: f.to, to_city: f.toCity,
     aircraft: f.aircraft, tail: f.tail || null, seat: f.seat || null,
+    flight_number: f.flightNumber || null,
     km: f.km, price: f.price, note: f.note, extra: f.extra
   };
 }
@@ -663,7 +673,18 @@ async function resolveUnknownAirlines() {
 
 function fmtNum(n, decimals) {
   decimals = decimals || 0;
-  return (n||0).toLocaleString('it-IT', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  n = n || 0;
+  const neg = n < 0;
+  n = Math.abs(n);
+  const fixed = n.toFixed(decimals);
+  const parts = fixed.split('.');
+  let intPart = parts[0];
+  let grouped = '';
+  for (let i = 0; i < intPart.length; i++) {
+    if (i > 0 && (intPart.length - i) % 3 === 0) grouped += '.';
+    grouped += intPart[i];
+  }
+  return (neg ? '-' : '') + grouped + (parts[1] ? ',' + parts[1] : '');
 }
 
 function isFlown(f) { return f.date <= TODAY_STR; }
@@ -747,6 +768,15 @@ function countBy(list, keyFn) {
 // così un aereo "ricorrente" resta evidenziato indipendentemente dai filtri attivi.
 function getTailCounts() {
   return countBy(flights, f => f.tail);
+}
+
+// Media di €/100km su TUTTI i voli con prezzo e km noti (non solo quelli filtrati),
+// usata come riferimento stabile per capire se un volo è costato più o meno della norma.
+function getAvgPricePer100Km() {
+  const valid = flights.filter(f => f.price && f.km);
+  if (!valid.length) return null;
+  const total = valid.reduce((s, f) => s + (f.price / f.km * 100), 0);
+  return total / valid.length;
 }
 
 function project(lat, lon, bbox, W, H, pad) {
@@ -947,7 +977,7 @@ function applyQuickFilters(list) {
   let out = list;
   const now = new Date();
   if (currentFilter !== 'all') {
-    const yearsAgo = { '1y': 1, '3y': 3 };
+    const yearsAgo = { '1y': 1 };
     if (currentFilter === 'thisyear') {
       out = out.filter(f => f.date.slice(0,4) === String(now.getFullYear()));
     } else if (currentFilter === 'work') {
@@ -1067,23 +1097,45 @@ function renderPass(f, idx) {
   const future = isFuture(f);
   const tailCounts = getTailCounts();
   const isRepeatTail = f.tail && tailCounts[f.tail] > 1;
+
+  let priceLineHtml = '';
+  if (f.price) {
+    let per100Html = '';
+    if (f.km) {
+      const per100 = f.price / f.km * 100;
+      const avg = getAvgPricePer100Km();
+      let badge = '';
+      if (avg) {
+        const diff = (per100 - avg) / avg;
+        if (diff < -0.15) badge = `<span class="price-badge price-badge-low" title="Più economico della tua media (€${fmtNum(avg,2)}/100Km)">↓ economico</span>`;
+        else if (diff > 0.15) badge = `<span class="price-badge price-badge-high" title="Più costoso della tua media (€${fmtNum(avg,2)}/100Km)">↑ costoso</span>`;
+        else badge = `<span class="price-badge price-badge-mid" title="Nella tua media (€${fmtNum(avg,2)}/100Km)">≈ media</span>`;
+      }
+      per100Html = ` <span class="pass-per100">(€${fmtNum(per100,2)}/100Km)</span>${badge}`;
+    }
+    priceLineHtml = `<div class="pass-line-price"><span class="pass-price">€${fmtNum(f.price,2)}</span>${per100Html}</div>`;
+  }
+
   return `
     <div class="pass${future?' pass-future':''}" data-idx="${idx}">
       <div class="pass-main">
+        ${f.flightNumber ? `<div class="pass-flightnum">${f.flightNumber}</div>` : ''}
         <div class="pass-route">
           <div class="pass-code">${f.from}</div>
           <div class="pass-arrow"><span class="ln"></span>✈<span class="flight-duration">${h}h ${m}m</span><span class="ln"></span></div>
           <div class="pass-code">${f.to}</div>
         </div>
         <div class="pass-cities">${f.fromCity||''} → ${f.toCity||''}</div>
-        <div class="pass-line-fixed">
+        <div class="pass-line-airline">
           <span class="pass-airline"><b>${getAirlineLogo(f.company)} ${f.company}</b></span>
+        </div>
+        <div class="pass-line-fixed">
           ${f.aircraft ? `<span>${f.aircraft}</span>` : ''}
+          ${f.tail ? `<span class="pass-tail${isRepeatTail?' pass-tail-repeat':''}"${isRepeatTail?` data-tail="${f.tail}" title="Aereo visto ${tailCounts[f.tail]} volte — clicca per vedere gli altri voli"`:''}>${f.tail}</span>` : ''}
           ${f.km ? `<span>${fmtNum(f.km)} km</span>` : ''}
         </div>
+        ${priceLineHtml}
         <div class="pass-line-extra">
-          ${f.price ? `<span class="pass-price">€${fmtNum(f.price,2)}</span>` : ''}
-          ${f.tail ? `<span class="pass-tail${isRepeatTail?' pass-tail-repeat':''}"${isRepeatTail?` data-tail="${f.tail}" title="Aereo visto ${tailCounts[f.tail]} volte — clicca per vedere gli altri voli"`:''}>${f.tail}</span>` : ''}
           ${future ? `<span class="pass-tag pass-tag-future">In programma</span>` : (f.note ? `<span class="pass-tag" title="${f.note}">${f.note}</span>` : '')}
         </div>
       </div>
@@ -1114,6 +1166,7 @@ function exportBackupXlsx() {
   if (typeof XLSX === 'undefined') { alert('Libreria di esportazione non disponibile.'); return; }
   const rows = flights.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(f => ({
     'Data': f.date,
+    'Numero volo': f.flightNumber || '',
     'Compagnia': f.company,
     'Da (IATA)': f.from,
     'Città partenza': f.fromCity || '',
@@ -1191,10 +1244,15 @@ async function handleImportFile(e) {
   }
   if (!rawRows.length) { alert('Il file sembra vuoto.'); return; }
 
-  const existingKeys = new Set(flights.map(f => `${f.date}|${f.from}|${f.to}|${f.company}`));
-  const toImport = [];
-  const duplicates = [];
+  const existingByKey = {};
+  flights.forEach(f => { existingByKey[`${f.date}|${f.from}|${f.to}|${f.company}`] = f; });
+  const seenInFile = new Set();
+  const toInsert = [];
+  const toUpdate = []; // { existing, patch }
+  const unchanged = [];
   const invalid = [];
+
+  const FIELDS = ['fromCity','toCity','aircraft','tail','seat','flightNumber','km','price','note'];
 
   rawRows.forEach((row, i) => {
     const norm = normalizeRowKeys(row);
@@ -1217,6 +1275,7 @@ async function handleImportFile(e) {
       aircraft: (pickField(norm, 'aereo', 'aircraft') || '').toString().trim() || null,
       tail: (pickField(norm, 'tail number', 'tail') || '').toString().trim() || null,
       seat: (pickField(norm, 'posto', 'seat') || '').toString().trim() || null,
+      flightNumber: (pickField(norm, 'numero volo', 'numero di volo', 'volo', 'flight number', 'flight') || '').toString().trim() || null,
       km: parseNumField(pickField(norm, 'km')),
       price: parseNumField(pickField(norm, 'prezzo (€)', 'prezzo', 'price')),
       note: (pickField(norm, 'note') || '').toString().trim() || null,
@@ -1224,29 +1283,53 @@ async function handleImportFile(e) {
     };
 
     const key = `${flight.date}|${flight.from}|${flight.to}|${flight.company}`;
-    if (existingKeys.has(key)) { duplicates.push(flight); return; }
-    existingKeys.add(key); // evita doppioni anche all'interno dello stesso file
-    toImport.push(flight);
+    if (seenInFile.has(key)) return; // doppione nello stesso file, ignora il ripetuto
+    seenInFile.add(key);
+
+    const existing = existingByKey[key];
+    if (!existing) {
+      toInsert.push(flight);
+      return;
+    }
+    // volo già presente: confronta i campi e aggiorna solo se qualcosa è cambiato
+    const patch = {};
+    FIELDS.forEach(field => {
+      const newVal = flight[field];
+      const oldVal = existing[field];
+      if (newVal !== null && newVal !== '' && String(newVal) !== String(oldVal ?? '')) {
+        patch[field] = newVal;
+      }
+    });
+    if (Object.keys(patch).length) toUpdate.push({ existing, patch });
+    else unchanged.push(flight);
   });
 
-  if (!toImport.length) {
-    await showInfoModal('Importazione', `<div style="text-align:center;padding:8px 0;">Nessun volo nuovo da importare.${duplicates.length?`<br/>${duplicates.length} già presenti (saltati).`:''}${invalid.length?`<br/><span style="color:var(--coral)">${invalid.length} righe con dati mancanti/non validi.</span>`:''}</div>`);
+  if (!toInsert.length && !toUpdate.length) {
+    await showInfoModal('Importazione', `<div style="text-align:center;padding:8px 0;">Nessuna novità da importare.${unchanged.length?`<br/>${unchanged.length} già identici (nessuna modifica).`:''}${invalid.length?`<br/><span style="color:var(--coral)">${invalid.length} righe con dati mancanti/non validi.</span>`:''}</div>`);
     return;
   }
 
-  const previewHtml = toImport.slice(0, 12).map(f => `
+  const previewRows = [
+    ...toInsert.map(f => ({ f, tag: 'nuovo', color: 'var(--teal)' })),
+    ...toUpdate.map(u => ({ f: u.existing, tag: `agg. ${Object.keys(u.patch).join(', ')}`, color: 'var(--gold)' }))
+  ];
+  const previewHtml = previewRows.slice(0, 14).map(({f, tag, color}) => `
     <div class="tail-flight-row">
       <span class="tail-flight-date">${f.date.split('-').reverse().join('/')}</span>
       <span class="tail-flight-route">${f.from} → ${f.to}</span>
-      <span class="tail-flight-company">${f.company}</span>
+      <span class="tail-flight-company" style="color:${color}">${tag}</span>
     </div>`).join('');
-  const moreNote = toImport.length > 12 ? `<div style="text-align:center;font-size:11px;color:var(--text-faint);margin-top:8px;">…e altri ${toImport.length - 12}</div>` : '';
-  const skipNote = (duplicates.length || invalid.length)
-    ? `<div style="font-size:11px;color:var(--text-faint);margin-top:10px;">${duplicates.length ? `${duplicates.length} già presenti (saltati). ` : ''}${invalid.length ? `${invalid.length} righe non valide (saltate).` : ''}</div>`
+  const moreNote = previewRows.length > 14 ? `<div style="text-align:center;font-size:11px;color:var(--text-faint);margin-top:8px;">…e altri ${previewRows.length - 14}</div>` : '';
+  const skipNote = (unchanged.length || invalid.length)
+    ? `<div style="font-size:11px;color:var(--text-faint);margin-top:10px;">${unchanged.length ? `${unchanged.length} già identici (nessuna modifica). ` : ''}${invalid.length ? `${invalid.length} righe non valide (saltate).` : ''}</div>`
     : '';
 
+  const summaryParts = [];
+  if (toInsert.length) summaryParts.push(`${toInsert.length} nuov${toInsert.length===1?'o':'i'}`);
+  if (toUpdate.length) summaryParts.push(`${toUpdate.length} da aggiornare`);
+
   const confirmed = await showConfirmModal(
-    `Importare ${toImport.length} vol${toImport.length===1?'o':'i'}?`,
+    `Importare: ${summaryParts.join(', ')}?`,
     `<div class="tail-flight-list">${previewHtml}</div>${moreNote}${skipNote}`,
     'Importa'
   );
@@ -1254,11 +1337,20 @@ async function handleImportFile(e) {
 
   try {
     if (supabaseClient) {
-      const { data, error } = await supabaseClient.from('flights').insert(toImport.map(flightToRow)).select();
-      if (error) throw error;
-      (data || []).forEach(row => flights.push(rowToFlight(row)));
+      if (toInsert.length) {
+        const { data, error } = await supabaseClient.from('flights').insert(toInsert.map(flightToRow)).select();
+        if (error) throw error;
+        (data || []).forEach(row => flights.push(rowToFlight(row)));
+      }
+      for (const u of toUpdate) {
+        const merged = { ...u.existing, ...u.patch };
+        const updated = await updateFlightRemote(u.existing.id, merged);
+        const idx = flights.findIndex(f => f.id === u.existing.id);
+        if (idx >= 0) flights[idx] = updated;
+      }
     } else {
-      toImport.forEach(f => flights.push(f));
+      toInsert.forEach(f => flights.push(f));
+      toUpdate.forEach(u => Object.assign(u.existing, u.patch));
     }
   } catch (err) {
     console.error('Errore importazione massiva', err);
@@ -1268,7 +1360,10 @@ async function handleImportFile(e) {
 
   render();
   resolveUnknownAirports().then(changed => { if (changed) render(); });
-  await showInfoModal('Importazione completata', `<div style="text-align:center;padding:8px 0;">✓ ${toImport.length} vol${toImport.length===1?'o':'i'} importat${toImport.length===1?'o':'i'} e sincronizzat${toImport.length===1?'o':'i'}</div>`);
+  const resultParts = [];
+  if (toInsert.length) resultParts.push(`${toInsert.length} nuov${toInsert.length===1?'o':'i'}`);
+  if (toUpdate.length) resultParts.push(`${toUpdate.length} aggiornat${toUpdate.length===1?'o':'i'}`);
+  await showInfoModal('Importazione completata', `<div style="text-align:center;padding:8px 0;">✓ ${resultParts.join(', ')} — sincronizzato</div>`);
 }
 
 function renderTimeline() {
@@ -1293,7 +1388,6 @@ function renderTimeline() {
         <div class="chip ${currentFilter==='all'?'active':''}" data-filter="all">Tutti</div>
         <div class="chip ${currentFilter==='thisyear'?'active':''}" data-filter="thisyear">Quest'anno</div>
         <div class="chip ${currentFilter==='1y'?'active':''}" data-filter="1y">Ultimo anno</div>
-        <div class="chip ${currentFilter==='3y'?'active':''}" data-filter="3y">Ultimi 3 anni</div>
         <div class="chip ${currentFilter==='flown'?'active':''}" data-filter="flown">Volati</div>
         <div class="chip ${currentFilter==='notflown'?'active':''}" data-filter="notflown">Non volati</div>
         <div class="chip chip-work ${currentFilter==='work'?'active':''}" data-filter="work">✈ X LAVORO</div>
@@ -1304,6 +1398,7 @@ function renderTimeline() {
         <div class="form-grid">
           <div class="field"><label>Data</label><input type="date" id="f-date"/></div>
           <div class="field"><label>Compagnia</label><input type="text" id="f-company" placeholder="es. Ryanair" list="company-options"/></div>
+          <div class="field"><label>Numero volo</label><input type="text" id="f-flightnum" placeholder="es. FR2049" style="text-transform:uppercase"/></div>
           <div class="field"><label>Da (IATA)</label><input type="text" id="f-from" placeholder="es. BGY" maxlength="4" style="text-transform:uppercase" list="airport-options"/></div>
           <div class="field"><label>Città partenza</label><input type="text" id="f-fromcity" placeholder="es. Bergamo"/></div>
           <div class="field"><label>A (IATA)</label><input type="text" id="f-to" placeholder="es. VLC" maxlength="4" style="text-transform:uppercase" list="airport-options"/></div>
@@ -1519,6 +1614,7 @@ function bindEvents(mapFlights) {
     saveBtn.addEventListener('click', async () => {
       const date = root.querySelector('#f-date').value;
       const company = root.querySelector('#f-company').value.trim();
+      const flightNumber = root.querySelector('#f-flightnum').value.trim();
       const from = root.querySelector('#f-from').value.trim().toUpperCase();
       const fromCity = root.querySelector('#f-fromcity').value.trim();
       const to = root.querySelector('#f-to').value.trim().toUpperCase();
@@ -1558,7 +1654,7 @@ function bindEvents(mapFlights) {
 
       const flightData = {
         date, company, from, fromCity: fromCity || AIRPORTS[from].city, to, toCity: toCity || AIRPORTS[to].city,
-        aircraft: aircraft || null, tail: tail || null, seat: seat || null,
+        aircraft: aircraft || null, tail: tail || null, seat: seat || null, flightNumber: flightNumber || null,
         km: kmVal ? parseFloat(kmVal) : null,
         price: priceVal ? parseFloat(priceVal) : null,
         note: note || null, extra: existingExtra ?? null
@@ -1603,7 +1699,7 @@ function bindEvents(mapFlights) {
 }
 
 function resetFormFields() {
-  ['f-date','f-company','f-from','f-fromcity','f-to','f-tocity','f-aircraft','f-tail','f-seat','f-km','f-price','f-note'].forEach(id => {
+  ['f-date','f-company','f-flightnum','f-from','f-fromcity','f-to','f-tocity','f-aircraft','f-tail','f-seat','f-km','f-price','f-note'].forEach(id => {
     const el = root.querySelector('#'+id);
     if (el) el.value = '';
   });
@@ -1618,6 +1714,7 @@ async function openEditForm(idx) {
   const addForm = root.querySelector('#add-form');
   root.querySelector('#f-date').value = f.date;
   root.querySelector('#f-company').value = f.company || '';
+  root.querySelector('#f-flightnum').value = f.flightNumber || '';
   root.querySelector('#f-from').value = f.from || '';
   root.querySelector('#f-fromcity').value = f.fromCity || '';
   root.querySelector('#f-to').value = f.to || '';
