@@ -187,7 +187,9 @@
   #flighty-root .pass-del:hover { color: var(--coral); background: rgba(240,117,90,.1); }
   #flighty-root .pass-edit { position:absolute; top:6px; right:30px; background:none; border:none; color: var(--text-faint); cursor:pointer; font-size: 13px; padding: 2px 6px; border-radius:4px; line-height:1; z-index: 2; }
   #flighty-root .pass-edit:hover { color: var(--teal); background: rgba(79,216,201,.1); }
-  #flighty-root .pass-flightnum { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--text-faint); letter-spacing: .04em; margin-bottom: 2px; }
+  #flighty-root .pass-top-row { display:flex; align-items:center; justify-content:space-between; gap: 8px; margin-bottom: 2px; }
+  #flighty-root .pass-flightnum { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--text-faint); letter-spacing: .04em; }
+  #flighty-root .pass-co2 { font-size: 9.5px; color: #8FBF7A; white-space: nowrap; flex-shrink: 0; }
   #flighty-root .pass-route { display:flex; align-items:center; gap: 10px; }
   #flighty-root .pass-code { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: .02em; flex-shrink:0; }
   #flighty-root .pass-arrow { color: var(--teal); font-size: 12px; flex:1; display:flex; align-items:center; gap:6px; min-width: 20px;}
@@ -232,7 +234,7 @@
   /* --- Responsive: tablet --- */
   @media (max-width: 860px) {
     #flighty-root .wrap { padding: 20px 16px 48px; }
-    #flighty-root .stat-strip { grid-template-columns: repeat(4, 1fr); }
+    #flighty-root .stat-strip { grid-template-columns: repeat(3, 1fr); }
     #flighty-root .map-box { height: 380px; }
   }
 
@@ -242,9 +244,11 @@
     #flighty-root .header { align-items: flex-start; }
     #flighty-root .brand-title { font-size: 19px; }
     #flighty-root .header-right .num { font-size: 24px; }
-    #flighty-root .stat-strip { grid-template-columns: repeat(2, 1fr); }
-    #flighty-root .stat-cell { padding: 12px 12px; }
-    #flighty-root .stat-cell .v { font-size: 20px; }
+    #flighty-root .stat-strip { grid-template-columns: repeat(3, 1fr); }
+    #flighty-root .stat-cell { padding: 10px 8px; }
+    #flighty-root .stat-cell .v { font-size: 16px; }
+    #flighty-root .stat-cell .l { font-size: 9px; }
+    #flighty-root .upcoming-next { font-size: 8px; }
     #flighty-root .map-box { height: 300px; }
     #flighty-root .panel { padding: 14px; }
     #flighty-root .panel-head { gap: 8px; }
@@ -568,6 +572,17 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return Math.round(R * c);
 }
 
+// Stima CO2 a fasce di distanza (g CO2eq per km per passeggero) — approssimazione
+// comparativa, non un dato certificato. Non include l'effetto radiativo ad alta quota.
+function estimateCO2Tonnes(km) {
+  if (!km) return null;
+  let factor; // g CO2/km
+  if (km < 1500) factor = 155;
+  else if (km <= 3500) factor = 135;
+  else factor = 117;
+  return (km * factor) / 1000 / 1000; // g -> kg -> t
+}
+
 // --- Ricerca aeroporti sconosciuti in un database mondiale (OpenFlights) ---
 // Copre migliaia di aeroporti oltre ai 35 già noti, così nuove rotte/aeroporti
 // ottengono coordinate GPS (per la mappa) e paese (per la bandiera) in automatico.
@@ -741,6 +756,8 @@ function computeStats(baseList) {
   const earthCircumference = 40075;
   const timesAroundEarth = totalKm / earthCircumference;
 
+  const totalCO2Tonnes = flownList.reduce((s,f) => s + (estimateCO2Tonnes(f.km) || 0), 0);
+
   const dates = flownList.map(f=>f.date).sort();
   const firstYear = dates.length ? dates[0].slice(0,4) : '-';
   const lastYear = dates.length ? dates[dates.length-1].slice(0,4) : '-';
@@ -749,7 +766,7 @@ function computeStats(baseList) {
 
   return {
     totalFlights, totalKm, totalHours, airportSet, countrySet, companySet,
-    firstYear, lastYear, timesAroundEarth,
+    firstYear, lastYear, timesAroundEarth, totalCO2Tonnes,
     upcomingCount: futureList.length, nextFlight
   };
 }
@@ -917,6 +934,7 @@ function renderStatStrip(stats) {
       <div class="stat-cell"><div class="v accent-gold">${stats.countrySet.size}</div><div class="l">Paesi</div></div>
       <div class="stat-cell"><div class="v accent-teal">${stats.companySet.size}</div><div class="l">Compagnie</div></div>
       <div class="stat-cell"><div class="v accent-teal">${stats.timesAroundEarth.toFixed(2)}×</div><div class="l">Giri del mondo</div></div>
+      <div class="stat-cell"><div class="v" style="color:#8FBF7A">${fmtNum(stats.totalCO2Tonnes,2)}</div><div class="l">t CO₂eq <span class="stat-sub">(stima)</span></div></div>
     </div>`;
 }
 
@@ -1117,10 +1135,17 @@ function renderPass(f, idx) {
     priceLineHtml = `<div class="pass-line-price"><span class="pass-price">€${fmtNum(f.price,2)}</span>${per100Html}</div>`;
   }
 
+  const co2Tonnes = estimateCO2Tonnes(f.km);
+  const topRowHtml = (f.flightNumber || co2Tonnes !== null) ? `
+        <div class="pass-top-row">
+          <div class="pass-flightnum">${f.flightNumber || ''}</div>
+          ${co2Tonnes !== null ? `<div class="pass-co2" title="Stima CO2eq a fasce di distanza — non un dato certificato">🌱 ${fmtNum(co2Tonnes,2)} t CO₂eq</div>` : ''}
+        </div>` : '';
+
   return `
     <div class="pass${future?' pass-future':''}" data-idx="${idx}">
       <div class="pass-main">
-        ${f.flightNumber ? `<div class="pass-flightnum">${f.flightNumber}</div>` : ''}
+        ${topRowHtml}
         <div class="pass-route">
           <div class="pass-code">${f.from}</div>
           <div class="pass-arrow"><span class="ln"></span>✈<span class="flight-duration">${h}h ${m}m</span><span class="ln"></span></div>
