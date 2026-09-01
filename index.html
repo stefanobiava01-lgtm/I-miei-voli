@@ -59,7 +59,7 @@
   #flighty-root .header-right { text-align: right; }
   #flighty-root .header-right .num { font-size: 30px; font-weight: 700; color: var(--gold); font-family: 'Space Grotesk', sans-serif; line-height:1; }
   #flighty-root .header-right .lbl { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .1em; margin-top:4px; }
-  #flighty-root .user-badge { font-size: 10px; color: var(--text-faint); margin-top: 6px; }
+  #flighty-root .account-row { text-align: right; font-size: 10.5px; color: var(--text-faint); margin: -14px 0 20px; word-break: break-all; }
   #flighty-root .logout-link { color: var(--coral); cursor: pointer; text-decoration: underline; }
   #flighty-root .logout-link:hover { color: #ff9382; }
 
@@ -259,6 +259,7 @@
     #flighty-root .header { align-items: flex-start; }
     #flighty-root .brand-title { font-size: 19px; }
     #flighty-root .header-right .num { font-size: 24px; }
+    #flighty-root .account-row { font-size: 9.5px; margin: -8px 0 16px; text-align: right; }
     #flighty-root .stat-strip { grid-template-columns: repeat(3, 1fr); }
     #flighty-root .stat-cell { padding: 10px 8px; }
     #flighty-root .stat-cell .v { font-size: 16px; }
@@ -1488,9 +1489,9 @@ function render() {
         <div class="header-right">
           <div class="num">${totalEverFlown}</div>
           <div class="lbl">voli totali</div>
-          ${currentUser ? `<div class="user-badge">${currentUser.email || ''} · <span id="logout-link" class="logout-link">Esci</span></div>` : ''}
         </div>
       </div>
+      ${currentUser ? `<div class="account-row">${currentUser.email || ''} · <span id="logout-link" class="logout-link">Esci</span></div>` : ''}
       ${renderFilterBar()}
       ${renderStatStrip(stats)}
       ${renderMapPanel(filteredForStats)}
