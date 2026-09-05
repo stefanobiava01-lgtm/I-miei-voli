@@ -171,7 +171,7 @@
   #flighty-root .modal-actions { display:flex; gap: 10px; justify-content:center; }
   #flighty-root .btn-danger { background: var(--coral); color: #2a0f08; border:none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor:pointer; }
 
-  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: 194px; transition: border-color .15s; }
+  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: 208px; transition: border-color .15s; }
   #flighty-root .pass:hover { border-color: rgba(79,216,201,.35); }
   #flighty-root .pass-main { padding: 12px 40px 12px 14px; display: flex; flex-direction: column; gap: 5px; min-width: 0; overflow: hidden; }
   #flighty-root .pass-line-airline { display:flex; align-items:center; font-size: 12.5px; }
@@ -184,7 +184,7 @@
   #flighty-root .price-badge-low { color: var(--teal); }
   #flighty-root .price-badge-mid { color: var(--gold); font-size: 10px; }
   #flighty-root .price-badge-high { color: var(--coral); }
-  #flighty-root .pass-line-extra { display:flex; gap: 6px 8px; align-items:flex-start; flex-wrap: wrap; min-height: 0; max-height: 22px; overflow: hidden; row-gap: 5px; }
+  #flighty-root .pass-line-extra { display:flex; gap: 6px 8px; align-items:flex-start; flex-wrap: wrap; min-height: 0; max-height: 44px; overflow: hidden; row-gap: 5px; }
   #flighty-root .pass-price { font-size: 12px; font-weight: 700; color: var(--teal); }
   #flighty-root .pass-tag { font-size: 9.5px; padding: 2px 7px; border-radius: 10px; background: rgba(240,117,90,.15); color: var(--coral); display:inline-block; width: fit-content; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #flighty-root .pass-tail { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; padding: 2px 7px; border-radius: 4px; background: rgba(148,168,210,.1); border: 1px solid var(--line); color: var(--text-dim); letter-spacing: .03em; white-space: nowrap; }
@@ -278,7 +278,7 @@
     #flighty-root .form-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     #flighty-root .field input, #flighty-root .field select { padding: 11px 10px; font-size: 14px; }
     #flighty-root .pass-list { grid-template-columns: 1fr; }
-    #flighty-root .pass { height: auto; min-height: 176px; }
+    #flighty-root .pass { height: auto; min-height: 190px; }
     #flighty-root .pass-del { top: 8px; right: 8px; font-size: 16px; padding: 6px 8px; }
     #flighty-root .pass-edit { top: 8px; right: 38px; font-size: 15px; padding: 6px 8px; }
     #flighty-root .pass-main { padding: 14px 68px 14px 14px; }
@@ -1183,7 +1183,8 @@ function renderPass(f, idx) {
         </div>
         ${priceLineHtml}
         <div class="pass-line-extra">
-          ${future ? `<span class="pass-tag pass-tag-future">In programma</span>` : (f.note ? `<span class="pass-tag" title="${f.note}">${f.note}</span>` : '')}
+          ${future ? `<span class="pass-tag pass-tag-future">In programma</span>` : ''}
+          ${f.note ? `<span class="pass-tag" title="${f.note}">${f.note}</span>` : ''}
         </div>
       </div>
       <div class="pass-stub">
