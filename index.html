@@ -165,6 +165,13 @@
   #flighty-root .pass-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 
   #flighty-root .modal-overlay { position: absolute; inset: 0; background: rgba(3,6,12,.72); display:flex; align-items:center; justify-content:center; z-index: 1000; border-radius: 14px; }
+  #flighty-root .panel-highlight { font-size: 11.5px; color: var(--text-dim); margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  #flighty-root .panel-highlight b { color: var(--gold); }
+  #flighty-root .yoy-up { color: var(--coral); }
+  #flighty-root .yoy-down { color: var(--teal); }
+  #flighty-root .yoy-flat { color: var(--gold); }
+  #flighty-root .undo-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #182238; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; display:flex; align-items:center; gap: 14px; box-shadow: 0 8px 28px rgba(0,0,0,.5); z-index: 1100; font-size: 13px; color: var(--text); max-width: 90vw; }
+  #flighty-root .undo-toast #undo-btn { background: var(--teal); color: #061214; border:none; padding: 6px 14px; border-radius: 6px; font-weight: 700; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
   #flighty-root .modal-box { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; max-width: 320px; width: 88%; text-align:center; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
   #flighty-root .modal-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
   #flighty-root .modal-msg { font-size: 13px; color: var(--text-dim); margin-bottom: 18px; line-height: 1.5; }
@@ -431,6 +438,37 @@ function showInfoModal(title, contentHtml) {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   });
 }
+
+let undoToastTimer = null;
+function showUndoToast(deletedFlight) {
+  const old = root.querySelector('.undo-toast');
+  if (old) old.remove();
+  if (undoToastTimer) clearTimeout(undoToastTimer);
+
+  const toast = document.createElement('div');
+  toast.className = 'undo-toast';
+  toast.innerHTML = `
+    <span>Volo ${deletedFlight.from} → ${deletedFlight.to} eliminato</span>
+    <button id="undo-btn">Annulla</button>`;
+  root.appendChild(toast);
+
+  const dismiss = () => { toast.remove(); };
+  toast.querySelector('#undo-btn').addEventListener('click', async () => {
+    clearTimeout(undoToastTimer);
+    dismiss();
+    const { id, ...flightData } = deletedFlight;
+    try {
+      const restored = await insertFlightRemote(flightData);
+      flights.push(restored);
+    } catch (err) {
+      console.error('Errore ripristino volo', err);
+      flights.push(deletedFlight);
+    }
+    render();
+  });
+  undoToastTimer = setTimeout(dismiss, 7000);
+}
+
 const root = document.getElementById('flighty-root');
 root.innerHTML = '<div class="loading-state">Carico i tuoi voli…</div>';
 
@@ -813,6 +851,21 @@ function getAvgPricePer100Km() {
   return total / valid.length;
 }
 
+// Confronta i voli fatti quest'anno (fino ad oggi) con lo stesso periodo dell'anno scorso,
+// così il paragone è equo (non conta l'intero anno passato contro un anno ancora in corso).
+// Calcolato su TUTTI i voli, indipendentemente dai filtri attivi.
+function getYoYComparison() {
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const cutoffThis = now.toISOString().slice(0, 10);
+  const cutoffLast = new Date(thisYear - 1, now.getMonth(), now.getDate()).toISOString().slice(0, 10);
+  const thisYearCount = flights.filter(f => f.date.slice(0,4) === String(thisYear) && f.date <= cutoffThis).length;
+  const lastYearCount = flights.filter(f => f.date.slice(0,4) === String(thisYear - 1) && f.date <= cutoffLast).length;
+  if (!lastYearCount) return null;
+  const diffPct = Math.round(((thisYearCount - lastYearCount) / lastYearCount) * 100);
+  return { thisYearCount, lastYearCount, diffPct, thisYear };
+}
+
 function project(lat, lon, bbox, W, H, pad) {
   const x = pad + (lon - bbox.minLon) / (bbox.maxLon - bbox.minLon) * (W - 2*pad);
   const y = pad + (bbox.maxLat - lat) / (bbox.maxLat - bbox.minLat) * (H - 2*pad);
@@ -855,15 +908,30 @@ function initLeafletMap(mapFlights) {
 
   const routeSeenFlown = {};
   const routeSeenFuture = {};
+  const routeFlightsMap = {}; // key -> array di voli su quella rotta (per il popup al click)
   mapFlights.forEach(f => {
     const a = airportInfo(f.from), b = airportInfo(f.to);
     if (!a.lat || !b.lat) return;
     const key = [f.from, f.to].sort().join('-');
     const bucket = isFuture(f) ? routeSeenFuture : routeSeenFlown;
     bucket[key] = (bucket[key] || 0) + 1;
+    if (!routeFlightsMap[key]) routeFlightsMap[key] = [];
+    routeFlightsMap[key].push(f);
   });
   const FLOWN_COLOR = '#39FF8A';   // verde acceso — voli volati, ben visibile anche su satellite
   const FUTURE_COLOR = '#E8A23D'; // arancione — voli in programma
+  function buildRoutePopupHtml(c1, c2, key) {
+    const info1 = airportInfo(c1), info2 = airportInfo(c2);
+    const routeFlights = (routeFlightsMap[key] || []).slice().sort((a,b) => b.date.localeCompare(a.date));
+    const rows = routeFlights.slice(0, 8).map(f => `
+      <div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;font-size:11.5px;">
+        <span style="font-family:'IBM Plex Mono',monospace;color:#8B99B8;">${f.date.split('-').reverse().join('/')}</span>
+        <span>${f.from}→${f.to}</span>
+        <span style="color:#8B99B8;">${f.company}</span>
+      </div>`).join('');
+    const more = routeFlights.length > 8 ? `<div style="font-size:10px;color:#55628A;margin-top:4px;">…e altri ${routeFlights.length - 8}</div>` : '';
+    return `<div style="min-width:200px;"><b>${c1} ↔ ${c2}</b><br/><span style="color:#8B99B8;font-size:11.5px;">${info1.city} — ${info2.city} · ${routeFlights.length} vol${routeFlights.length===1?'o':'i'}</span><div style="margin-top:6px;">${rows}${more}</div></div>`;
+  }
   function drawRoutes(routeSeen, color, dashed, glow) {
     Object.keys(routeSeen).forEach(key => {
       const [c1, c2] = key.split('-');
@@ -873,15 +941,18 @@ function initLeafletMap(mapFlights) {
       if (glow) {
         // alone sottostante per far risaltare la linea anche su sfondo chiaro/satellitare
         L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
-          color: color, weight: mainWeight + 5, opacity: 0.22, dashArray: dashed ? '6, 6' : null
+          color: color, weight: mainWeight + 5, opacity: 0.22, dashArray: dashed ? '6, 6' : null, interactive: false
         }).addTo(map);
       }
-      L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
+      const mainLine = L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
         color: color,
         weight: mainWeight,
         opacity: Math.min(0.85 + weight * 0.05, 1),
         dashArray: dashed ? '6, 6' : null
       }).addTo(map);
+      mainLine.bindPopup(buildRoutePopupHtml(c1, c2, key), { maxWidth: 260 });
+      mainLine.on('mouseover', () => mainLine.setStyle({ weight: mainWeight + 2 }));
+      mainLine.on('mouseout', () => mainLine.setStyle({ weight: mainWeight }));
     });
   }
   drawRoutes(routeSeenFlown, FLOWN_COLOR, false, true);
@@ -970,7 +1041,7 @@ function renderMapPanel(mapFlights) {
         <span><span class="sw" style="background:#39FF8A"></span>Aeroporti visitati</span>
         <span><span class="sw" style="background:#39FF8A"></span>Rotte volate</span>
         <span><span class="sw" style="background:#E8A23D"></span>Rotte in programma</span>
-        <span>Zoom/trascina per esplorare · clic su un aeroporto per i dettagli</span>
+        <span>Zoom/trascina per esplorare · clic su aeroporto o rotta per i dettagli</span>
       </div>
     </div>`;
 }
@@ -1075,6 +1146,16 @@ function renderRankPanels() {
     aircraftKm[f.aircraft] = (aircraftKm[f.aircraft] || 0) + (f.km || 0);
   });
 
+  const routePairCounts = {};
+  airportFlights.forEach(f => {
+    const key = [f.from, f.to].sort().join(' ↔ ');
+    routePairCounts[key] = (routePairCounts[key] || 0) + 1;
+  });
+  const topRouteEntry = Object.entries(routePairCounts).sort((a,b) => b[1]-a[1])[0];
+  const topRouteHtml = topRouteEntry
+    ? `<div class="panel-highlight">Rotta più frequente: <b>${topRouteEntry[0]}</b> · ${topRouteEntry[1]} voli</div>`
+    : '';
+
   return `
     <div class="cols">
       <div class="panel">
@@ -1086,6 +1167,14 @@ function renderRankPanels() {
             <button class="sort-btn ${yearSortBy==='km'?'active':''}" data-sortdim="year" data-sort="km">Km</button>
           </div>
         </div>
+        ${(() => {
+          const yoy = getYoYComparison();
+          if (!yoy) return '';
+          const arrow = yoy.diffPct > 0 ? '▲' : (yoy.diffPct < 0 ? '▼' : '●');
+          const cls = yoy.diffPct > 0 ? 'yoy-up' : (yoy.diffPct < 0 ? 'yoy-down' : 'yoy-flat');
+          const verb = yoy.diffPct > 0 ? 'in più' : (yoy.diffPct < 0 ? 'in meno' : 'invariato');
+          return `<div class="panel-highlight">Quest'anno: <b class="${cls}">${arrow} ${Math.abs(yoy.diffPct)}% ${verb}</b> rispetto allo stesso periodo del ${yoy.thisYear - 1} (${yoy.thisYearCount} vs ${yoy.lastYearCount})</div>`;
+        })()}
         ${renderDualRankList(yearCounts, yearKm, globalFilters.year, 'year', yearSortBy, null, yearSortDir)}
       </div>
       <div class="panel">
@@ -1102,6 +1191,7 @@ function renderRankPanels() {
     <div class="cols">
       <div class="panel">
         <div class="panel-head"><div class="panel-title"><span class="dot"></span>Aeroporti più visitati</div></div>
+        ${topRouteHtml}
         ${renderRankList(airportCounts, globalFilters.airport, 'airport', code => `${getCountryFlag(airportInfo(code).country)} ${code} · ${airportInfo(code).city}`)}
       </div>
       <div class="panel">
@@ -1816,7 +1906,7 @@ function bindPassDelete() {
       if (!target) return;
       const confirmed = await showConfirmModal(
         'Eliminare questo volo?',
-        `${target.from} → ${target.to} · ${target.date.split('-').reverse().join('/')}<br/>Questa azione non può essere annullata.`,
+        `${target.from} → ${target.to} · ${target.date.split('-').reverse().join('/')}`,
         'Elimina'
       );
       if (!confirmed) return;
@@ -1829,6 +1919,7 @@ function bindPassDelete() {
       }
       flights.splice(idx, 1);
       render();
+      showUndoToast(target);
     });
   });
 }
