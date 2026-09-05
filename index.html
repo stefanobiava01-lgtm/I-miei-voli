@@ -1151,10 +1151,14 @@ function renderRankPanels() {
     const key = [f.from, f.to].sort().join(' ↔ ');
     routePairCounts[key] = (routePairCounts[key] || 0) + 1;
   });
-  const topRouteEntry = Object.entries(routePairCounts).sort((a,b) => b[1]-a[1])[0];
-  const topRouteHtml = topRouteEntry
-    ? `<div class="panel-highlight">Rotta più frequente: <b>${topRouteEntry[0]}</b> · ${topRouteEntry[1]} voli</div>`
-    : '';
+  const routeEntries = Object.entries(routePairCounts);
+  const maxRouteCount = routeEntries.length ? Math.max(...routeEntries.map(e => e[1])) : 0;
+  const topRoutes = routeEntries.filter(e => e[1] === maxRouteCount);
+  const topRouteHtml = topRoutes.length === 1
+    ? `<div class="panel-highlight">Rotta più frequente: <b>${topRoutes[0][0]}</b> · ${topRoutes[0][1]} voli</div>`
+    : topRoutes.length > 1
+      ? `<div class="panel-highlight">Rotte più frequenti (pari merito): <b>${topRoutes.map(e => e[0]).join(', ')}</b> · ${maxRouteCount} voli ciascuna</div>`
+      : '';
 
   return `
     <div class="cols">
