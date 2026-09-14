@@ -75,6 +75,11 @@
   #flighty-root .sync-badge.sync-ok { color: var(--teal); }
   #flighty-root .sync-badge.sync-off { color: var(--coral); }
 
+  #flighty-root .passport-head { display:flex; align-items:center; gap: 12px; padding: 4px 2px 14px; }
+  #flighty-root .passport-stamp { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), #c98f3e); display:flex; align-items:center; justify-content:center; font-size: 17px; flex-shrink:0; box-shadow: 0 2px 8px rgba(232,180,99,.35); }
+  #flighty-root .passport-title { font-size: 12px; font-weight: 800; letter-spacing: .14em; color: var(--gold); }
+  #flighty-root .passport-sub { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+  #flighty-root .stat-icon { font-size: 15px; margin-bottom: 4px; opacity: .85; }
   #flighty-root .stat-strip { display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 22px; }
   #flighty-root .stat-cell { background: var(--bg-panel); padding: 16px 16px; position: relative; text-align: center; }
   #flighty-root .stat-cell .v { font-size: 24px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.01em; }
@@ -102,10 +107,6 @@
   #flighty-root .rank-row.clickable.active { background: rgba(79,216,201,.1); }
   #flighty-root .rank-row.clickable.active .rank-name { color: var(--teal); font-weight: 600; }
 
-  #flighty-root .map-toggle { display:flex; gap: 6px; }
-  #flighty-root .map-toggle button { background: var(--bg-panel-2); border: 1px solid var(--line); color: var(--text-dim); font-size: 11.5px; padding: 6px 11px; border-radius: 16px; cursor: pointer; transition: all .15s; }
-  #flighty-root .map-toggle button:hover { color: var(--text); }
-  #flighty-root .map-toggle button.active { background: var(--gold); border-color: var(--gold); color: #1a1204; font-weight: 600; }
 
   #flighty-root .pass-future { border-color: rgba(240,117,90,.4); background: linear-gradient(180deg, rgba(240,117,90,.05), var(--bg-panel-2)); }
   #flighty-root .pass-tag-future { background: rgba(240,117,90,.22); color: var(--coral); font-weight: 600; }
@@ -118,6 +119,10 @@
 
   #flighty-root .map-box { width: 100%; height: 480px; border-radius: 10px; overflow: hidden; background: #0A0F1C; position: relative; }
   #flighty-root #leaflet-map { width: 100%; height: 100%; }
+  #flighty-root .map-fab-stack { position: absolute; top: 12px; right: 12px; z-index: 500; display: flex; flex-direction: column; gap: 8px; }
+  #flighty-root .map-fab { width: 40px; height: 40px; border-radius: 50%; background: rgba(18,26,44,.92); border: 1px solid var(--line); color: var(--text-dim); font-size: 17px; cursor: pointer; display:flex; align-items:center; justify-content:center; box-shadow: 0 3px 10px rgba(0,0,0,.4); transition: all .15s; backdrop-filter: blur(6px); }
+  #flighty-root .map-fab:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0,0,0,.5); }
+  #flighty-root .map-fab.active { background: var(--gold); border-color: var(--gold); filter: none; }
   #flighty-root .map-legend { display:flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-faint); }
   #flighty-root .map-legend span { display:inline-flex; align-items:center; gap:6px; }
   #flighty-root .map-legend .sw { width: 8px; height: 8px; border-radius: 50%; display:inline-block; }
@@ -270,12 +275,15 @@
     #flighty-root .stat-strip { grid-template-columns: repeat(3, 1fr); }
     #flighty-root .stat-cell { padding: 10px 8px; }
     #flighty-root .stat-cell .v { font-size: 16px; }
+    #flighty-root .stat-icon { font-size: 12px; margin-bottom: 2px; }
+    #flighty-root .passport-stamp { width: 32px; height: 32px; font-size: 14px; }
+    #flighty-root .passport-title { font-size: 10.5px; }
     #flighty-root .stat-cell .l { font-size: 9px; }
     #flighty-root .upcoming-next { font-size: 8px; }
     #flighty-root .map-box { height: 300px; }
     #flighty-root .panel { padding: 14px; }
     #flighty-root .panel-head { gap: 8px; }
-    #flighty-root .map-toggle button { padding: 7px 10px; font-size: 11px; }
+    #flighty-root .map-fab { width: 36px; height: 36px; font-size: 15px; }
     #flighty-root .timeline-controls { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
     #flighty-root .timeline-controls::-webkit-scrollbar { height: 4px; }
     #flighty-root .chip { flex-shrink: 0; padding: 8px 13px; }
@@ -990,7 +998,7 @@ function switchMapStyle(style) {
   Object.values(layers).forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
   if (style === 'satellite') { layers.satLayer.addTo(map); layers.satLabels.addTo(map); }
   else { layers.darkLayer.addTo(map); layers.darkLabels.addTo(map); }
-  const btns = root.querySelectorAll('.map-toggle button');
+  const btns = root.querySelectorAll('.map-fab');
   btns.forEach(b => b.classList.toggle('active', b.getAttribute('data-style') === style));
 }
 
@@ -1011,20 +1019,28 @@ function renderFilterBar() {
 
 function renderStatStrip(stats) {
   return `
+    <div class="passport-head">
+      <span class="passport-stamp">✈</span>
+      <div>
+        <div class="passport-title">FLIGHTY PASSPORT</div>
+        <div class="passport-sub">Tutti i voli · ${stats.firstYear}–${stats.lastYear}</div>
+      </div>
+    </div>
     <div class="stat-strip">
       <div class="stat-cell upcoming">
+        <div class="stat-icon">🕐</div>
         <div class="v accent-coral">${stats.upcomingCount}</div>
         <div class="l">In programma</div>
         ${stats.nextFlight ? `<div class="upcoming-next">Prossimo: ${stats.nextFlight.from}→${stats.nextFlight.to} · ${new Date(stats.nextFlight.date+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</div>` : ''}
       </div>
-      <div class="stat-cell"><div class="v accent-gold">${stats.totalFlights}</div><div class="l">Voli volati</div></div>
-      <div class="stat-cell"><div class="v accent-teal">${fmtNum(stats.totalKm)}</div><div class="l">Km percorsi</div></div>
-      <div class="stat-cell"><div class="v">${fmtNum(stats.totalHours)} <span class="stat-value-sub">(${fmtNum(stats.totalHours/24,1)} gg)</span></div><div class="l">Ore di volo</div></div>
-      <div class="stat-cell"><div class="v accent-coral">${stats.airportSet.size}</div><div class="l">Aeroporti</div></div>
-      <div class="stat-cell"><div class="v accent-gold">${stats.countrySet.size}</div><div class="l">Paesi</div></div>
-      <div class="stat-cell"><div class="v accent-teal">${stats.companySet.size}</div><div class="l">Compagnie</div></div>
-      <div class="stat-cell"><div class="v accent-teal">${stats.timesAroundEarth.toFixed(2)}×</div><div class="l">Giri del mondo</div></div>
-      <div class="stat-cell"><div class="v" style="color:#8FBF7A">${fmtNum(stats.totalCO2Tonnes,2)} <span class="stat-value-sub" style="color:#8FBF7A">(${fmtNum(stats.totalCO2Tonnes/3.15,2)} tep)</span></div><div class="l">t CO₂eq <span class="stat-sub">(stima)</span></div></div>
+      <div class="stat-cell"><div class="stat-icon">✈️</div><div class="v accent-gold">${stats.totalFlights}</div><div class="l">Voli volati</div></div>
+      <div class="stat-cell"><div class="stat-icon">📍</div><div class="v accent-teal">${fmtNum(stats.totalKm)}</div><div class="l">Km percorsi</div></div>
+      <div class="stat-cell"><div class="stat-icon">⏱️</div><div class="v">${fmtNum(stats.totalHours)} <span class="stat-value-sub">(${fmtNum(stats.totalHours/24,1)} gg)</span></div><div class="l">Ore di volo</div></div>
+      <div class="stat-cell"><div class="stat-icon">🛬</div><div class="v accent-coral">${stats.airportSet.size}</div><div class="l">Aeroporti</div></div>
+      <div class="stat-cell"><div class="stat-icon">🌍</div><div class="v accent-gold">${stats.countrySet.size}</div><div class="l">Paesi</div></div>
+      <div class="stat-cell"><div class="stat-icon">🏢</div><div class="v accent-teal">${stats.companySet.size}</div><div class="l">Compagnie</div></div>
+      <div class="stat-cell"><div class="stat-icon">🌐</div><div class="v accent-teal">${stats.timesAroundEarth.toFixed(2)}×</div><div class="l">Giri del mondo</div></div>
+      <div class="stat-cell"><div class="stat-icon">🌱</div><div class="v" style="color:#8FBF7A">${fmtNum(stats.totalCO2Tonnes,2)} <span class="stat-value-sub" style="color:#8FBF7A">(${fmtNum(stats.totalCO2Tonnes/3.15,2)} tep)</span></div><div class="l">t CO₂eq <span class="stat-sub">(stima)</span></div></div>
     </div>`;
 }
 
@@ -1033,12 +1049,14 @@ function renderMapPanel(mapFlights) {
     <div class="panel">
       <div class="panel-head">
         <div class="panel-title"><span class="dot"></span>Rotte volate</div>
-        <div class="map-toggle">
-          <button data-style="satellite" class="${mapStyle==='satellite'?'active':''}">🛰️ Satellite</button>
-          <button data-style="dark" class="${mapStyle==='dark'?'active':''}">🌑 Scuro</button>
+      </div>
+      <div class="map-box">
+        <div id="leaflet-map"></div>
+        <div class="map-fab-stack">
+          <button class="map-fab ${mapStyle==='satellite'?'active':''}" data-style="satellite" title="Vista satellite">🛰️</button>
+          <button class="map-fab ${mapStyle==='dark'?'active':''}" data-style="dark" title="Vista scura">🌑</button>
         </div>
       </div>
-      <div class="map-box"><div id="leaflet-map"></div></div>
       <div class="map-legend">
         <span><span class="sw" style="background:#F0755A"></span>Base (Milano/Bergamo)</span>
         <span><span class="sw" style="background:#39FF8A"></span>Aeroporti visitati</span>
@@ -1670,7 +1688,7 @@ function bindEvents(mapFlights) {
   if (clearAllBtn) clearAllBtn.addEventListener('click', clearAllFilters);
 
   // map style toggle
-  root.querySelectorAll('.map-toggle button').forEach(btn => {
+  root.querySelectorAll('.map-fab').forEach(btn => {
     btn.addEventListener('click', () => switchMapStyle(btn.getAttribute('data-style')));
   });
 
