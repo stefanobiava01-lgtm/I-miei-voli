@@ -58,7 +58,12 @@
   #flighty-root .app-map-full { position: absolute; inset: 0; background: #0A0F1C; }
   #flighty-root .app-map-full #leaflet-map { width: 100%; height: 100%; }
 
-  #flighty-root .app-shell .glass-panel { background: rgba(20,28,46,.58); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 28px rgba(0,0,0,.35); }
+  #flighty-root .app-topbar.glass-panel,
+  #flighty-root .upcoming-sheet.glass-panel { background: rgba(20,28,46,.58); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 28px rgba(0,0,0,.35); }
+  #flighty-root .wrap-glass .panel { background: rgba(20,28,46,.5); backdrop-filter: blur(18px) saturate(170%); -webkit-backdrop-filter: blur(18px) saturate(170%); border: 1px solid rgba(255,255,255,.1); }
+  #flighty-root .wrap-glass .stat-cell { background: rgba(20,28,46,.5); backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); }
+  #flighty-root .wrap-glass .stat-strip { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.1); }
+  #flighty-root .wrap-glass .add-form { background: rgba(255,255,255,.03); border-radius: 12px; padding: 14px; }
 
   #flighty-root .app-topbar { display:flex; align-items:center; justify-content:space-between; gap: 12px; padding: 12px 16px; border-radius: 14px; flex-wrap: wrap; background: var(--bg-panel); border: 1px solid var(--line); margin-bottom: 18px; }
   #flighty-root .app-shell .app-topbar { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; z-index: 1100; margin-bottom: 0; border-radius: 18px; }
@@ -69,8 +74,7 @@
   #flighty-root .app-sync.sync-off { color: var(--coral); }
   #flighty-root .app-account { word-break: break-all; }
 
-  #flighty-root .home-flights-sheet { position: absolute; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 450; max-height: 56vh; border-radius: 20px; overflow-y: auto; background: rgba(20,28,46,.58); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 28px rgba(0,0,0,.35); }
-  #flighty-root .home-flights-sheet .panel { background: transparent; border: none; box-shadow: none; padding: 16px; border-radius: 0; margin-bottom: 0; }
+  #flighty-root .upcoming-sheet { position: absolute; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 450; max-height: 34vh; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; }
   #flighty-root .upcoming-sheet-head { display:flex; justify-content:space-between; align-items:center; padding: 13px 16px 8px; font-size: 13px; font-weight: 700; flex-shrink: 0; }
   #flighty-root .upcoming-count { background: var(--coral); color: #2a0f08; font-size: 11px; font-weight: 800; padding: 1px 8px; border-radius: 10px; }
   #flighty-root .upcoming-sheet-list { overflow-y: auto; padding: 0 10px 10px; }
@@ -1152,9 +1156,12 @@ function applyQuickFilters(list) {
   return out;
 }
 
-// Base list after quick chips (date range / work) + search — everything else builds on this
+// Base list after quick chips (date range / work) + search — everything else builds on this.
+// Nella scheda "Voli volati" (currentView 'flown') si parte SOLO dai voli già volati,
+// dato che quelli in programma vivono ormai nella Home.
 function getBaseFlights() {
-  return applyQuickFilters(flights);
+  const source = currentView === 'flown' ? flights.filter(isFlown) : flights;
+  return applyQuickFilters(source);
 }
 
 function renderRankPanels() {
@@ -1573,8 +1580,6 @@ function renderTimeline() {
         <div class="chip ${currentFilter==='all'?'active':''}" data-filter="all">Tutti</div>
         <div class="chip ${currentFilter==='thisyear'?'active':''}" data-filter="thisyear">Quest'anno</div>
         <div class="chip ${currentFilter==='1y'?'active':''}" data-filter="1y">Ultimo anno</div>
-        <div class="chip ${currentFilter==='flown'?'active':''}" data-filter="flown">Volati</div>
-        <div class="chip ${currentFilter==='notflown'?'active':''}" data-filter="notflown">Non volati</div>
         <div class="chip chip-work ${currentFilter==='work'?'active':''}" data-filter="work">✈ X LAVORO</div>
         <input class="search-input" id="search-box" placeholder="Cerca..." value="${searchTerm}"/>
       </div>
@@ -1633,13 +1638,13 @@ function renderBottomNav() {
   return `
     <div class="bottom-nav">
       <button class="nav-btn ${currentView==='home'?'active':''}" data-view="home"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9.5v-6h5v6H17.5a1 1 0 0 0 1-1v-9"/></svg></span>Home</button>
+      <button class="nav-btn ${currentView==='flown'?'active':''}" data-view="flown"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16l5-2 4 2 4-9 5 3"/><path d="M3 20h18"/></svg></span>Voli volati</button>
       <button class="nav-btn ${currentView==='stats'?'active':''}" data-view="stats"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="13" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="11" rx="1"/><rect x="16" y="4" width="4" height="16" rx="1"/></svg></span>Statistiche</button>
     </div>`;
 }
 
 function renderUpcomingRow(f, idx) {
   const days = daysUntil(f.date);
-  const dayLabel = days <= 0 ? 'OGGI' : days === 1 ? '1 GIORNO' : `${days} GIORNI`;
   const dateFmt = new Date(f.date + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
   return `
     <div class="upcoming-row" data-idx="${idx}">
@@ -1659,6 +1664,10 @@ function renderUpcomingRow(f, idx) {
 }
 
 function renderHomeView(stats, mapFlights) {
+  const upcoming = flights.filter(isFuture).slice().sort((a,b) => a.date.localeCompare(b.date));
+  const upcomingHtml = upcoming.length
+    ? upcoming.map((f) => renderUpcomingRow(f, flights.indexOf(f))).join('')
+    : `<div class="empty-note" style="padding:20px 0;">Nessun volo in programma.<br/>Aggiungine uno dalla scheda "Voli volati".</div>`;
   return `
     <div class="app-shell">
       ${renderTopBar('✈️ I miei voli')}
@@ -1669,17 +1678,33 @@ function renderHomeView(stats, mapFlights) {
           <button class="map-fab ${mapStyle==='dark'?'active':''}" data-style="dark" title="Vista scura">🌑</button>
         </div>
       </div>
-      <div class="home-flights-sheet">
-        ${renderTimeline()}
+      <div class="upcoming-sheet glass-panel">
+        <div class="upcoming-sheet-head">
+          <span>✈ Prossimi voli</span>
+          <span class="upcoming-count">${upcoming.length}</span>
+        </div>
+        <div class="upcoming-sheet-list">${upcomingHtml}</div>
       </div>
       ${renderBottomNav()}
     </div>`;
 }
 
+function renderFlownView(stats) {
+  return `
+    <div class="bg-grid"></div>
+    <div class="wrap wrap-stats wrap-glass">
+      ${renderTopBar('✅ Voli volati')}
+      ${renderFilterBar()}
+      ${renderTimeline()}
+      <div class="footer-note">Qui trovi solo i voli già volati. I voli in programma restano nella scheda Home.</div>
+    </div>
+    ${renderBottomNav()}`;
+}
+
 function renderStatsView(stats) {
   return `
     <div class="bg-grid"></div>
-    <div class="wrap wrap-stats">
+    <div class="wrap wrap-stats wrap-glass">
       ${renderTopBar('📊 Statistiche')}
       ${renderFilterBar()}
       ${renderStatStrip(stats)}
@@ -1692,13 +1717,14 @@ function renderStatsView(stats) {
 function render() {
   const filteredForStats = applyGlobalFilters(getBaseFlights(), null);
   const stats = computeStats(filteredForStats);
-  root.innerHTML = currentView === 'home'
-    ? renderHomeView(stats, filteredForStats)
-    : renderStatsView(stats);
+  if (currentView === 'home') root.innerHTML = renderHomeView(stats, filteredForStats);
+  else if (currentView === 'flown') root.innerHTML = renderFlownView(stats);
+  else root.innerHTML = renderStatsView(stats);
   document.documentElement.style.overflow = currentView === 'home' ? 'hidden' : '';
   document.body.style.overflow = currentView === 'home' ? 'hidden' : '';
   bindEvents(filteredForStats);
 }
+
 
 function tryAutoFillKm() {
   const fromInput = root.querySelector('#f-from');
