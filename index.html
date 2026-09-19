@@ -75,6 +75,13 @@
   #flighty-root .app-account { word-break: break-all; }
 
   #flighty-root .upcoming-sheet { position: absolute; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 450; max-height: 34vh; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; }
+  @media (min-width: 861px) {
+    #flighty-root .upcoming-sheet { right: auto; top: 160px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 360px; max-height: none; }
+  }
+  #flighty-root .home-year-chips { display:flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 10px; flex-shrink: 0; }
+  #flighty-root .home-year-chip { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: var(--text-dim); font-size: 11px; padding: 4px 11px; border-radius: 14px; cursor: pointer; transition: all .15s; }
+  #flighty-root .home-year-chip:hover { color: var(--text); }
+  #flighty-root .home-year-chip.active { background: var(--teal); border-color: var(--teal); color: #061214; font-weight: 700; }
   #flighty-root .upcoming-sheet-head { display:flex; justify-content:space-between; align-items:center; padding: 13px 16px 8px; font-size: 13px; font-weight: 700; flex-shrink: 0; }
   #flighty-root .upcoming-count { background: var(--coral); color: #2a0f08; font-size: 11px; font-weight: 800; padding: 1px 8px; border-radius: 10px; }
   #flighty-root .upcoming-sheet-list { overflow-y: auto; padding: 0 10px 10px; }
@@ -1614,7 +1621,8 @@ function renderTimeline() {
     </div>`;
 }
 
-let currentView = 'home'; // 'home' | 'stats'
+let currentView = 'home'; // 'home' | 'flown' | 'stats'
+let homeYearFilter = 'upcoming'; // 'upcoming' | anno specifico (es. '2024') — filtro nel pannello Home
 
 function daysUntil(dateStr) {
   const target = new Date(dateStr + 'T00:00:00');
@@ -1643,14 +1651,24 @@ function renderBottomNav() {
     </div>`;
 }
 
-function renderUpcomingRow(f, idx) {
-  const days = daysUntil(f.date);
-  const dateFmt = new Date(f.date + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+function renderFlightRow(f, idx) {
+  const future = isFuture(f);
+  let bigVal, smallLbl;
+  if (future) {
+    const days = daysUntil(f.date);
+    bigVal = days <= 0 ? '●' : days;
+    smallLbl = days <= 0 ? 'OGGI' : (days === 1 ? 'GIORNO' : 'GIORNI');
+  } else {
+    const d = new Date(f.date + 'T00:00:00');
+    bigVal = d.getDate();
+    smallLbl = MONTHS_IT[d.getMonth()];
+  }
+  const dateFmt = new Date(f.date + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: future ? undefined : 'numeric' });
   return `
     <div class="upcoming-row" data-idx="${idx}">
       <div class="upcoming-countdown">
-        <div class="upcoming-days">${days <= 0 ? '●' : days}</div>
-        <div class="upcoming-days-lbl">${days <= 0 ? 'OGGI' : (days === 1 ? 'GIORNO' : 'GIORNI')}</div>
+        <div class="upcoming-days">${bigVal}</div>
+        <div class="upcoming-days-lbl">${smallLbl}</div>
       </div>
       <div class="upcoming-info">
         <div class="upcoming-top">
@@ -1664,10 +1682,27 @@ function renderUpcomingRow(f, idx) {
 }
 
 function renderHomeView(stats, mapFlights) {
+  const flownYears = [...new Set(flights.filter(isFlown).map(f => f.date.slice(0,4)))].sort((a,b) => b.localeCompare(a));
   const upcoming = flights.filter(isFuture).slice().sort((a,b) => a.date.localeCompare(b.date));
-  const upcomingHtml = upcoming.length
-    ? upcoming.map((f) => renderUpcomingRow(f, flights.indexOf(f))).join('')
-    : `<div class="empty-note" style="padding:20px 0;">Nessun volo in programma.<br/>Aggiungine uno dalla scheda "Voli volati".</div>`;
+
+  let list, headLabel;
+  if (homeYearFilter === 'upcoming') {
+    list = upcoming;
+    headLabel = '✈ Prossimi voli';
+  } else {
+    list = flights.filter(f => isFlown(f) && f.date.slice(0,4) === homeYearFilter).slice().sort((a,b) => b.date.localeCompare(a.date));
+    headLabel = `✈ Voli del ${homeYearFilter}`;
+  }
+  const listHtml = list.length
+    ? list.map((f) => renderFlightRow(f, flights.indexOf(f))).join('')
+    : `<div class="empty-note" style="padding:20px 0;">${homeYearFilter==='upcoming' ? 'Nessun volo in programma.<br/>Aggiungine uno dalla scheda "Voli volati".' : 'Nessun volo in questo anno.'}</div>`;
+
+  const yearChipsHtml = `
+    <div class="home-year-chips">
+      <button class="home-year-chip ${homeYearFilter==='upcoming'?'active':''}" data-year="upcoming">Prossimi</button>
+      ${flownYears.map(y => `<button class="home-year-chip ${homeYearFilter===y?'active':''}" data-year="${y}">${y}</button>`).join('')}
+    </div>`;
+
   return `
     <div class="app-shell">
       ${renderTopBar('✈️ I miei voli')}
@@ -1680,10 +1715,11 @@ function renderHomeView(stats, mapFlights) {
       </div>
       <div class="upcoming-sheet glass-panel">
         <div class="upcoming-sheet-head">
-          <span>✈ Prossimi voli</span>
-          <span class="upcoming-count">${upcoming.length}</span>
+          <span>${headLabel}</span>
+          <span class="upcoming-count">${list.length}</span>
         </div>
-        <div class="upcoming-sheet-list">${upcomingHtml}</div>
+        ${yearChipsHtml}
+        <div class="upcoming-sheet-list">${listHtml}</div>
       </div>
       ${renderBottomNav()}
     </div>`;
@@ -1981,7 +2017,14 @@ function bindEvents(mapFlights) {
 
   root.querySelectorAll('.upcoming-row[data-idx]').forEach(row => {
     row.addEventListener('click', () => {
-      currentView = 'stats';
+      currentView = 'flown';
+      render();
+    });
+  });
+
+  root.querySelectorAll('.home-year-chip[data-year]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      homeYearFilter = chip.getAttribute('data-year');
       render();
     });
   });
