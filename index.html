@@ -1683,18 +1683,17 @@ function renderFlightRow(f, idx) {
     </div>`;
 }
 
+function getHomeListFlights() {
+  if (homeYearFilter === 'upcoming') {
+    return flights.filter(isFuture).slice().sort((a,b) => a.date.localeCompare(b.date));
+  }
+  return flights.filter(f => isFlown(f) && f.date.slice(0,4) === homeYearFilter).slice().sort((a,b) => b.date.localeCompare(a.date));
+}
+
 function renderHomeView(stats, mapFlights) {
   const flownYears = [...new Set(flights.filter(isFlown).map(f => f.date.slice(0,4)))].sort((a,b) => b.localeCompare(a));
-  const upcoming = flights.filter(isFuture).slice().sort((a,b) => a.date.localeCompare(b.date));
-
-  let list, headLabel;
-  if (homeYearFilter === 'upcoming') {
-    list = upcoming;
-    headLabel = '✈ Prossimi voli';
-  } else {
-    list = flights.filter(f => isFlown(f) && f.date.slice(0,4) === homeYearFilter).slice().sort((a,b) => b.date.localeCompare(a.date));
-    headLabel = `✈ Voli del ${homeYearFilter}`;
-  }
+  const list = getHomeListFlights();
+  const headLabel = homeYearFilter === 'upcoming' ? '✈ Prossimi voli' : `✈ Voli del ${homeYearFilter}`;
   const listHtml = list.length
     ? list.map((f) => renderFlightRow(f, flights.indexOf(f))).join('')
     : `<div class="empty-note" style="padding:20px 0;">${homeYearFilter==='upcoming' ? 'Nessun volo in programma.<br/>Aggiungine uno dalla scheda "Voli volati".' : 'Nessun volo in questo anno.'}</div>`;
@@ -1755,12 +1754,13 @@ function renderStatsView(stats) {
 function render() {
   const filteredForStats = applyGlobalFilters(getBaseFlights(), null);
   const stats = computeStats(filteredForStats);
-  if (currentView === 'home') root.innerHTML = renderHomeView(stats, filteredForStats);
+  const mapFlights = currentView === 'home' ? getHomeListFlights() : filteredForStats;
+  if (currentView === 'home') root.innerHTML = renderHomeView(stats, mapFlights);
   else if (currentView === 'flown') root.innerHTML = renderFlownView(stats);
   else root.innerHTML = renderStatsView(stats);
   document.documentElement.style.overflow = currentView === 'home' ? 'hidden' : '';
   document.body.style.overflow = currentView === 'home' ? 'hidden' : '';
-  bindEvents(filteredForStats);
+  bindEvents(mapFlights);
 }
 
 
