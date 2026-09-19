@@ -78,7 +78,9 @@
   @media (min-width: 861px) {
     #flighty-root .upcoming-sheet { right: auto; top: 160px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 360px; max-height: none; }
   }
-  #flighty-root .home-year-chips { display:flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 10px; flex-shrink: 0; }
+  #flighty-root .home-year-chips { display:flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 0 14px 10px; flex-shrink: 0; }
+  #flighty-root .home-year-chips::-webkit-scrollbar { display: none; }
+  #flighty-root .home-year-chip { flex-shrink: 0; }
   #flighty-root .home-year-chip { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: var(--text-dim); font-size: 11px; padding: 4px 11px; border-radius: 14px; cursor: pointer; transition: all .15s; }
   #flighty-root .home-year-chip:hover { color: var(--text); }
   #flighty-root .home-year-chip.active { background: var(--teal); border-color: var(--teal); color: #061214; font-weight: 700; }
