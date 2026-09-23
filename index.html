@@ -59,7 +59,7 @@
   #flighty-root .app-map-full #leaflet-map { width: 100%; height: 100%; }
 
   #flighty-root .app-topbar.glass-panel,
-  #flighty-root .upcoming-sheet.glass-panel { background: rgba(20,28,46,.58); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 28px rgba(0,0,0,.35); }
+  #flighty-root .upcoming-sheet.glass-panel { background: rgba(8,12,22,.86); backdrop-filter: blur(22px) saturate(140%); -webkit-backdrop-filter: blur(22px) saturate(140%); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 28px rgba(0,0,0,.45); }
   #flighty-root .wrap-glass .panel { background: rgba(20,28,46,.5); backdrop-filter: blur(18px) saturate(170%); -webkit-backdrop-filter: blur(18px) saturate(170%); border: 1px solid rgba(255,255,255,.1); }
   #flighty-root .wrap-glass .stat-cell { background: rgba(20,28,46,.5); backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); }
   #flighty-root .wrap-glass .stat-strip { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.1); }
@@ -68,7 +68,7 @@
   #flighty-root .app-topbar { display:flex; align-items:center; justify-content:space-between; gap: 12px; padding: 12px 16px; border-radius: 14px; flex-wrap: wrap; background: var(--bg-panel); border: 1px solid var(--line); margin-bottom: 18px; }
   #flighty-root .app-shell .app-topbar { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; z-index: 1100; margin-bottom: 0; border-radius: 18px; }
   #flighty-root .app-topbar-left { font-size: 14px; font-weight: 700; }
-  #flighty-root .app-topbar-right { text-align: right; font-size: 9.5px; color: var(--text-faint); line-height: 1.5; }
+  #flighty-root .app-topbar-right { text-align: right; font-size: 9.5px; color: #A9B6D4; line-height: 1.5; }
   #flighty-root .app-date { font-weight: 600; color: var(--text-dim); }
   #flighty-root .app-sync.sync-ok { color: var(--teal); }
   #flighty-root .app-sync.sync-off { color: var(--coral); }
@@ -97,7 +97,7 @@
   #flighty-root .upcoming-top { display:flex; justify-content:space-between; font-size: 11.5px; color: var(--text-dim); }
   #flighty-root .upcoming-route { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; margin-top: 2px; }
   #flighty-root .upcoming-arrow { color: var(--teal); font-weight: 400; }
-  #flighty-root .upcoming-cities { font-size: 10.5px; color: var(--text-faint); margin-top: 1px; }
+  #flighty-root .upcoming-cities { font-size: 10.5px; color: #8B99B8; margin-top: 1px; }
 
   /* --- Bottom nav (comune a entrambe le schermate), fissa e in vetro --- */
   #flighty-root .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display:flex; padding-bottom: env(safe-area-inset-bottom); background: rgba(14,21,36,.72); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border-top: 1px solid rgba(255,255,255,.1); }
@@ -547,7 +547,7 @@ let yearSortDir = 'desc'; // 'asc' | 'desc' — direzione quando yearSortBy === 
 let mapStyle = 'satellite'; // 'satellite' | 'dark'
 let syncMode = 'cloud'; // 'cloud' | 'offline'
 let editingFlightId = null; // uuid of flight currently being edited, or null when adding new
-const TODAY_STR = new Date().toISOString().slice(0,10);
+function getTodayStr() { return new Date().toISOString().slice(0,10); }
 
 function rowToFlight(row) {
   return {
@@ -820,8 +820,8 @@ function fmtNum(n, decimals) {
   return (neg ? '-' : '') + grouped + (parts[1] ? ',' + parts[1] : '');
 }
 
-function isFlown(f) { return f.date <= TODAY_STR; }
-function isFuture(f) { return f.date > TODAY_STR; }
+function isFlown(f) { return f.date <= getTodayStr(); }
+function isFuture(f) { return f.date > getTodayStr(); }
 
 // Apply globalFilters to a list. If excludeDim given, skip that dimension's check
 // (so a chart can show its own full set of options while respecting the others).
@@ -1988,7 +1988,7 @@ function bindEvents(mapFlights) {
         try {
           const saved = await insertFlightRemote(flightData);
           flights.push(saved);
-          msg.textContent = date > TODAY_STR ? 'Volo in programma salvato ✓ (sincronizzato)' : 'Volo salvato ✓ (sincronizzato)';
+          msg.textContent = date > getTodayStr() ? 'Volo in programma salvato ✓ (sincronizzato)' : 'Volo salvato ✓ (sincronizzato)';
           msg.style.color = '#4FD8C9';
         } catch (err) {
           console.error('Errore salvataggio remoto', err);
@@ -2121,6 +2121,20 @@ function bindPassDelete() {
 }
 
 initAuth();
+
+// Se l'app resta aperta a lungo (o va in background e torna attiva), controlla se è
+// cambiato il giorno e in tal caso ricalcola statistiche/liste (voli "in programma"
+// che nel frattempo sono stati volati passano automaticamente tra quelli volati).
+let lastKnownDay = getTodayStr();
+function checkDayRollover() {
+  const today = getTodayStr();
+  if (today !== lastKnownDay) {
+    lastKnownDay = today;
+    render();
+  }
+}
+setInterval(checkDayRollover, 5 * 60 * 1000); // ogni 5 minuti
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDayRollover(); });
 
 // Registra il service worker (necessario perché Chrome/Android mostrino "Installa app")
 if ('serviceWorker' in navigator) {
