@@ -80,6 +80,12 @@
   }
   #flighty-root .home-year-chips { display:flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 0 14px 10px; flex-shrink: 0; }
   #flighty-root .home-year-chips::-webkit-scrollbar { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    #flighty-root .home-year-chips { scrollbar-width: thin; }
+    #flighty-root .home-year-chips::-webkit-scrollbar { display: block; height: 5px; }
+    #flighty-root .home-year-chips::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
+    #flighty-root .home-year-chips::-webkit-scrollbar-track { background: transparent; }
+  }
   #flighty-root .home-year-chip { flex-shrink: 0; }
   #flighty-root .home-year-chip { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: var(--text-dim); font-size: 11px; padding: 4px 11px; border-radius: 14px; cursor: pointer; transition: all .15s; }
   #flighty-root .home-year-chip:hover { color: var(--text); }
@@ -2030,6 +2036,18 @@ function bindEvents(mapFlights) {
       render();
     });
   });
+
+  // su desktop la rotellina scorre solo in verticale: la convertiamo in orizzontale
+  // quando il mouse è sopra la riga degli anni, così si può scorrere anche senza touch
+  const yearChipsRow = root.querySelector('.home-year-chips');
+  if (yearChipsRow) {
+    yearChipsRow.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        yearChipsRow.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
 }
 
 function resetFormFields() {
