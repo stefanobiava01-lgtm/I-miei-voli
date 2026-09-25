@@ -82,8 +82,8 @@
   #flighty-root .home-year-chips::-webkit-scrollbar { display: none; }
   @media (hover: hover) and (pointer: fine) {
     #flighty-root .home-year-chips { scrollbar-width: thin; }
-    #flighty-root .home-year-chips::-webkit-scrollbar { display: block; height: 5px; }
-    #flighty-root .home-year-chips::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
+    #flighty-root .home-year-chips::-webkit-scrollbar { display: block; height: 6px; }
+    #flighty-root .home-year-chips::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
     #flighty-root .home-year-chips::-webkit-scrollbar-track { background: transparent; }
   }
   #flighty-root .home-year-chip { flex-shrink: 0; }
@@ -93,6 +93,9 @@
   #flighty-root .upcoming-sheet-head { display:flex; justify-content:space-between; align-items:center; padding: 13px 16px 8px; font-size: 13px; font-weight: 700; flex-shrink: 0; }
   #flighty-root .upcoming-count { background: var(--coral); color: #2a0f08; font-size: 11px; font-weight: 800; padding: 1px 8px; border-radius: 10px; }
   #flighty-root .upcoming-sheet-list { overflow-y: auto; padding: 0 10px 10px; }
+  #flighty-root .upcoming-sheet-list::-webkit-scrollbar { width: 6px; }
+  #flighty-root .upcoming-sheet-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  #flighty-root .upcoming-sheet-list::-webkit-scrollbar-track { background: transparent; }
   #flighty-root .upcoming-row { display:flex; align-items:center; gap: 12px; padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,.08); cursor: pointer; transition: background .12s; border-radius: 8px; }
   #flighty-root .upcoming-row:hover { background: rgba(255,255,255,.05); }
   #flighty-root .upcoming-row:last-child { border-bottom: none; }
