@@ -1175,11 +1175,8 @@ function applyQuickFilters(list) {
 }
 
 // Base list after quick chips (date range / work) + search — everything else builds on this.
-// Nella scheda "Voli volati" (currentView 'flown') si parte SOLO dai voli già volati,
-// dato che quelli in programma vivono ormai nella Home.
 function getBaseFlights() {
-  const source = currentView === 'flown' ? flights.filter(isFlown) : flights;
-  return applyQuickFilters(source);
+  return applyQuickFilters(flights);
 }
 
 function renderRankPanels() {
@@ -1598,6 +1595,8 @@ function renderTimeline() {
         <div class="chip ${currentFilter==='all'?'active':''}" data-filter="all">Tutti</div>
         <div class="chip ${currentFilter==='thisyear'?'active':''}" data-filter="thisyear">Quest'anno</div>
         <div class="chip ${currentFilter==='1y'?'active':''}" data-filter="1y">Ultimo anno</div>
+        <div class="chip ${currentFilter==='flown'?'active':''}" data-filter="flown">Volati</div>
+        <div class="chip ${currentFilter==='notflown'?'active':''}" data-filter="notflown">In programma</div>
         <div class="chip chip-work ${currentFilter==='work'?'active':''}" data-filter="work">✈ X LAVORO</div>
         <input class="search-input" id="search-box" placeholder="Cerca..." value="${searchTerm}"/>
       </div>
@@ -1739,10 +1738,10 @@ function renderFlownView(stats) {
   return `
     <div class="bg-grid"></div>
     <div class="wrap wrap-stats wrap-glass">
-      ${renderTopBar('✅ Voli volati')}
+      ${renderTopBar('✈️ I miei voli')}
       ${renderFilterBar()}
       ${renderTimeline()}
-      <div class="footer-note">Qui trovi solo i voli già volati. I voli in programma restano nella scheda Home.</div>
+      <div class="footer-note">Qui trovi tutti i tuoi voli, volati e in programma — usa i filtri "Volati"/"In programma" per separarli, o clicca ✎ per modificare un volo.</div>
     </div>
     ${renderBottomNav()}`;
 }
