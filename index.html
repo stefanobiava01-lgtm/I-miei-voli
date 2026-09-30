@@ -1691,25 +1691,42 @@ function renderFlightRow(f, idx) {
     </div>`;
 }
 
+// Se non ci sono voli in programma, il filtro "Prossimi" non ha senso: si passa
+// automaticamente a "Tutti" (tutti i voli volati) così la mappa non resta mai vuota.
+function getEffectiveHomeFilter() {
+  const hasUpcoming = flights.some(isFuture);
+  if (!hasUpcoming && homeYearFilter === 'upcoming') return 'all-flown';
+  return homeYearFilter;
+}
+
 function getHomeListFlights() {
-  if (homeYearFilter === 'upcoming') {
+  const filter = getEffectiveHomeFilter();
+  if (filter === 'upcoming') {
     return flights.filter(isFuture).slice().sort((a,b) => a.date.localeCompare(b.date));
   }
-  return flights.filter(f => isFlown(f) && f.date.slice(0,4) === homeYearFilter).slice().sort((a,b) => b.date.localeCompare(a.date));
+  if (filter === 'all-flown') {
+    return flights.filter(isFlown).slice().sort((a,b) => b.date.localeCompare(a.date));
+  }
+  return flights.filter(f => isFlown(f) && f.date.slice(0,4) === filter).slice().sort((a,b) => b.date.localeCompare(a.date));
 }
 
 function renderHomeView(stats, mapFlights) {
+  const hasUpcoming = flights.some(isFuture);
+  const effectiveFilter = getEffectiveHomeFilter();
   const flownYears = [...new Set(flights.filter(isFlown).map(f => f.date.slice(0,4)))].sort((a,b) => b.localeCompare(a));
   const list = getHomeListFlights();
-  const headLabel = homeYearFilter === 'upcoming' ? '✈ Prossimi voli' : `✈ Voli del ${homeYearFilter}`;
+  const headLabel = effectiveFilter === 'upcoming' ? '✈ Prossimi voli'
+    : effectiveFilter === 'all-flown' ? '✈ Tutti i voli volati'
+    : `✈ Voli del ${effectiveFilter}`;
   const listHtml = list.length
     ? list.map((f) => renderFlightRow(f, flights.indexOf(f))).join('')
-    : `<div class="empty-note" style="padding:20px 0;">${homeYearFilter==='upcoming' ? 'Nessun volo in programma.<br/>Aggiungine uno dalla scheda "Voli volati".' : 'Nessun volo in questo anno.'}</div>`;
+    : `<div class="empty-note" style="padding:20px 0;">${effectiveFilter==='upcoming' ? 'Nessun volo in programma.<br/>Aggiungine uno dalla scheda "I miei voli".' : 'Nessun volo trovato.'}</div>`;
 
   const yearChipsHtml = `
     <div class="home-year-chips">
-      <button class="home-year-chip ${homeYearFilter==='upcoming'?'active':''}" data-year="upcoming">Prossimi</button>
-      ${flownYears.map(y => `<button class="home-year-chip ${homeYearFilter===y?'active':''}" data-year="${y}">${y}</button>`).join('')}
+      <button class="home-year-chip ${effectiveFilter==='all-flown'?'active':''}" data-year="all-flown">Tutti</button>
+      ${hasUpcoming ? `<button class="home-year-chip ${effectiveFilter==='upcoming'?'active':''}" data-year="upcoming">Prossimi</button>` : ''}
+      ${flownYears.map(y => `<button class="home-year-chip ${effectiveFilter===y?'active':''}" data-year="${y}">${y}</button>`).join('')}
     </div>`;
 
   return `
