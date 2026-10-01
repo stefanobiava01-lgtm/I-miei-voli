@@ -172,7 +172,8 @@
   #flighty-root .rank-row.clickable.active .rank-name { color: var(--teal); font-weight: 600; }
 
 
-  #flighty-root .pass-future { border-color: rgba(240,117,90,.4); background: linear-gradient(180deg, rgba(240,117,90,.05), var(--bg-panel-2)); }
+  #flighty-root .pass-future { border: 2px solid var(--coral); background: linear-gradient(180deg, rgba(240,117,90,.08), var(--bg-panel-2)); }
+  #flighty-root .pass-highlight { box-shadow: 0 0 0 3px var(--teal), 0 0 20px rgba(79,216,201,.5); transition: box-shadow .3s ease; }
   #flighty-root .pass-tag-future { background: rgba(240,117,90,.22); color: var(--coral); font-weight: 600; }
   #flighty-root .form-hint { font-size: 11px; color: var(--text-faint); margin-top: 10px; }
 
@@ -1632,7 +1633,8 @@ function renderTimeline() {
 }
 
 let currentView = 'home'; // 'home' | 'flown' | 'stats'
-let homeYearFilter = 'upcoming'; // 'upcoming' | anno specifico (es. '2024') — filtro nel pannello Home
+let homeYearFilter = 'upcoming'; // 'upcoming' | 'all-flown' | anno specifico (es. '2024') — filtro nel pannello Home
+let pendingHighlightFlightId = null; // id del volo da evidenziare dopo la navigazione dalla Home
 
 function daysUntil(dateStr) {
   const target = new Date(dateStr + 'T00:00:00');
@@ -2044,6 +2046,13 @@ function bindEvents(mapFlights) {
 
   root.querySelectorAll('.upcoming-row[data-idx]').forEach(row => {
     row.addEventListener('click', () => {
+      const idx = parseInt(row.getAttribute('data-idx'), 10);
+      const f = flights[idx];
+      pendingHighlightFlightId = f ? f.id : null;
+      // azzera i filtri della scheda, altrimenti il volo cliccato potrebbe restare nascosto
+      currentFilter = 'all';
+      searchTerm = '';
+      globalFilters = { year: null, airport: null, company: null, aircraft: null };
       currentView = 'flown';
       render();
     });
@@ -2066,6 +2075,22 @@ function bindEvents(mapFlights) {
         e.preventDefault();
       }
     }, { passive: false });
+  }
+
+  if (currentView === 'flown' && pendingHighlightFlightId) {
+    const targetId = pendingHighlightFlightId;
+    pendingHighlightFlightId = null;
+    const idx = flights.findIndex(f => f.id === targetId);
+    if (idx >= 0) {
+      const el = root.querySelector(`.pass[data-idx="${idx}"]`);
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('pass-highlight');
+          setTimeout(() => el.classList.remove('pass-highlight'), 2200);
+        }, 50);
+      }
+    }
   }
 }
 
