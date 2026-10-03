@@ -172,8 +172,8 @@
   #flighty-root .rank-row.clickable.active .rank-name { color: var(--teal); font-weight: 600; }
 
 
-  #flighty-root .pass-future { border: 2px solid var(--coral); background: linear-gradient(180deg, rgba(240,117,90,.08), var(--bg-panel-2)); }
-  #flighty-root .pass-highlight { box-shadow: 0 0 0 3px var(--teal), 0 0 20px rgba(79,216,201,.5); transition: box-shadow .3s ease; }
+  #flighty-root .pass.pass-future { border-color: rgba(240,117,90,.6); box-shadow: inset 0 0 0 1.5px rgba(240,117,90,.55), inset 0 0 16px rgba(240,117,90,.12); background: linear-gradient(180deg, rgba(240,117,90,.08), var(--bg-panel-2)); }
+  #flighty-root .pass.pass-highlight { border-color: var(--teal); box-shadow: inset 0 0 0 2px var(--teal), inset 0 0 20px rgba(79,216,201,.35); transition: box-shadow .3s ease, border-color .3s ease; }
   #flighty-root .pass-tag-future { background: rgba(240,117,90,.22); color: var(--coral); font-weight: 600; }
   #flighty-root .form-hint { font-size: 11px; color: var(--text-faint); margin-top: 10px; }
 
@@ -1635,6 +1635,7 @@ function renderTimeline() {
 let currentView = 'home'; // 'home' | 'flown' | 'stats'
 let homeYearFilter = 'upcoming'; // 'upcoming' | 'all-flown' | anno specifico (es. '2024') — filtro nel pannello Home
 let pendingHighlightFlightId = null; // id del volo da evidenziare dopo la navigazione dalla Home
+let homeYearChipsScroll = 0; // posizione di scorrimento della riga anni, da conservare tra un render e l'altro
 
 function daysUntil(dateStr) {
   const target = new Date(dateStr + 'T00:00:00');
@@ -2060,6 +2061,8 @@ function bindEvents(mapFlights) {
 
   root.querySelectorAll('.home-year-chip[data-year]').forEach(chip => {
     chip.addEventListener('click', () => {
+      const row = root.querySelector('.home-year-chips');
+      if (row) homeYearChipsScroll = row.scrollLeft;
       homeYearFilter = chip.getAttribute('data-year');
       render();
     });
@@ -2069,12 +2072,14 @@ function bindEvents(mapFlights) {
   // quando il mouse è sopra la riga degli anni, così si può scorrere anche senza touch
   const yearChipsRow = root.querySelector('.home-year-chips');
   if (yearChipsRow) {
+    yearChipsRow.scrollLeft = homeYearChipsScroll; // ripristina la posizione dopo il render
     yearChipsRow.addEventListener('wheel', (e) => {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         yearChipsRow.scrollLeft += e.deltaY;
         e.preventDefault();
       }
     }, { passive: false });
+    yearChipsRow.addEventListener('scroll', () => { homeYearChipsScroll = yearChipsRow.scrollLeft; });
   }
 
   if (currentView === 'flown' && pendingHighlightFlightId) {
