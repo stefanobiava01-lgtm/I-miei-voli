@@ -1181,7 +1181,8 @@ function getBaseFlights() {
 }
 
 function renderRankPanels() {
-  const base = getBaseFlights();
+  // Solo voli già volati — coerente con i totali in alto, che già escludono quelli in programma.
+  const base = getBaseFlights().filter(isFlown);
   const yearsFlights = applyGlobalFilters(base, 'year');
   const airportFlights = applyGlobalFilters(base, 'airport');
   const companyFlights = applyGlobalFilters(base, 'company');
@@ -2063,7 +2064,11 @@ function bindEvents(mapFlights) {
     chip.addEventListener('click', () => {
       const row = root.querySelector('.home-year-chips');
       if (row) homeYearChipsScroll = row.scrollLeft;
-      homeYearFilter = chip.getAttribute('data-year');
+      const val = chip.getAttribute('data-year');
+      homeYearFilter = val;
+      // "Tutti"/"Prossimi" azzerano il filtro anno altrove; un anno specifico lo propaga
+      // anche alla scheda Statistiche e "I miei voli" (lo stesso filtro usato lì).
+      globalFilters.year = /^\d{4}$/.test(val) ? val : null;
       render();
     });
   });
