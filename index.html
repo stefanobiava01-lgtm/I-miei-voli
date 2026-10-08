@@ -72,6 +72,7 @@
   #flighty-root .app-date { font-weight: 600; color: var(--text-dim); }
   #flighty-root .app-sync.sync-ok { color: var(--teal); }
   #flighty-root .app-sync.sync-off { color: var(--coral); }
+  #flighty-root .app-sync.sync-cached { color: var(--gold); }
   #flighty-root .app-account { word-break: break-all; }
 
   #flighty-root .upcoming-sheet { position: absolute; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 450; max-height: 34vh; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; }
@@ -642,10 +643,24 @@ async function logout() {
   if (supabaseClient) await supabaseClient.auth.signOut();
 }
 
+const LOCAL_CACHE_KEY = 'imieivoli_flights_cache_v1';
+function saveFlightsToLocalCache() {
+  try { localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({ flights, savedAt: new Date().toISOString() })); }
+  catch (e) { console.error('Impossibile salvare la cache locale', e); }
+}
+function loadFlightsFromLocalCache() {
+  try {
+    const raw = localStorage.getItem(LOCAL_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && Array.isArray(parsed.flights) ? parsed : null;
+  } catch (e) { return null; }
+}
 async function loadFlights() {
   if (!supabaseClient) {
-    flights = SEED_FLIGHTS.slice();
-    syncMode = 'offline';
+    const cached = loadFlightsFromLocalCache();
+    flights = cached ? cached.flights : SEED_FLIGHTS.slice();
+    syncMode = cached ? 'offline-cached' : 'offline';
     render();
     return;
   }
@@ -654,10 +669,12 @@ async function loadFlights() {
     if (error) throw error;
     flights = (data || []).map(rowToFlight);
     syncMode = 'cloud';
+    saveFlightsToLocalCache();
   } catch (e) {
     console.error('Errore caricamento da Supabase', e);
-    flights = SEED_FLIGHTS.slice();
-    syncMode = 'offline';
+    const cached = loadFlightsFromLocalCache();
+    flights = cached ? cached.flights : SEED_FLIGHTS.slice();
+    syncMode = cached ? 'offline-cached' : 'offline';
   }
   render();
   resolveUnknownAirports().then(changed => { if (changed) render(); });
@@ -1650,7 +1667,7 @@ function renderTopBar(title) {
       <div class="app-topbar-left">${title}</div>
       <div class="app-topbar-right">
         <div class="app-date">${todayFormatted()}</div>
-        <div class="app-sync ${syncMode==='cloud'?'sync-ok':'sync-off'}">${syncMode==='cloud' ? '● Sincronizzato' : '○ Offline'}</div>
+        <div class="app-sync ${syncMode==='cloud'?'sync-ok':(syncMode==='offline-cached'?'sync-cached':'sync-off')}">${syncMode==='cloud' ? '● Sincronizzato' : (syncMode==='offline-cached' ? '◐ Offline (dati salvati)' : '○ Offline (nessun dato salvato)')}</div>
         ${currentUser ? `<div class="app-account">${currentUser.email || ''} · <span id="logout-link" class="logout-link">Esci</span></div>` : ''}
       </div>
     </div>`;
@@ -1789,6 +1806,7 @@ function render() {
   else root.innerHTML = renderStatsView(stats);
   document.documentElement.style.overflow = currentView === 'home' ? 'hidden' : '';
   document.body.style.overflow = currentView === 'home' ? 'hidden' : '';
+  if (syncMode === 'cloud') saveFlightsToLocalCache();
   bindEvents(mapFlights);
 }
 
