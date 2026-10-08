@@ -73,6 +73,7 @@
   #flighty-root .app-sync.sync-ok { color: var(--teal); }
   #flighty-root .app-sync.sync-off { color: var(--coral); }
   #flighty-root .app-sync.sync-cached { color: var(--gold); }
+  .leaflet-container { background: #0b1220; }
   #flighty-root .app-account { word-break: break-all; }
 
   #flighty-root .upcoming-sheet { position: absolute; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 450; max-height: 34vh; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; }
@@ -2229,7 +2230,10 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) chec
 // Registra il service worker (necessario perché Chrome/Android mostrino "Installa app")
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.error('Errore registrazione service worker', err));
+    navigator.serviceWorker.register('sw.js')
+      .then(() => navigator.serviceWorker.ready)
+      .then(reg => { if (navigator.onLine && reg.active) setTimeout(() => reg.active.postMessage('prefetch-tiles'), 4000); })
+      .catch(err => console.error('Errore registrazione service worker', err));
   });
 }
 
