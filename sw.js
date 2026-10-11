@@ -1,8 +1,8 @@
 // Service worker: rete prima, con copia salvata per aprire l'app anche senza connessione.
 // I dati dei voli NON passano da qui (Supabase non viene messo in cache): stanno in localStorage.
-const CACHE_NAME = 'i-miei-voli-v3';
+const CACHE_NAME = 'i-miei-voli-v4';
 const TILE_CACHE = 'i-miei-voli-tiles-v1';
-const TILE_MAX = 3000;
+const TILE_MAX = 6000;
 const TILE_BASES = [
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/',
   'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/',

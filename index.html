@@ -32,6 +32,8 @@
     --text-dim: #8B99B8;
     --text-faint: #55628A;
     --fx: 255,255,255;
+    --glass-blur: 24px;
+    --ui-zoom: 1;
     --glass-rgb: 12,17,30;
     --glass-rgb2: 20,28,46;
     --glass-op: 0.68;
@@ -65,15 +67,15 @@
   #flighty-root .app-map-full #leaflet-map { width: 100%; height: 100%; }
 
   #flighty-root .app-topbar.glass-panel,
-  #flighty-root .upcoming-sheet.glass-panel { background: rgba(var(--glass-rgb), var(--glass-op)); backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%); border: 1px solid rgba(var(--fx),.12); box-shadow: 0 8px 28px rgba(0,0,0,.4); }
-  #flighty-root .wrap-glass .panel { background: rgba(var(--glass-rgb2), calc(var(--glass-op) * .75)); backdrop-filter: blur(18px) saturate(170%); -webkit-backdrop-filter: blur(18px) saturate(170%); border: 1px solid rgba(var(--fx),.1); }
-  #flighty-root .wrap-glass .stat-cell { background: rgba(var(--glass-rgb2), calc(var(--glass-op) * .75)); backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); }
+  #flighty-root .upcoming-sheet.glass-panel { background: rgba(var(--glass-rgb), var(--glass-op)); backdrop-filter: blur(var(--glass-blur)) saturate(150%); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%); border: 1px solid rgba(var(--fx),.12); box-shadow: 0 8px 28px rgba(0,0,0,.4); }
+  #flighty-root .wrap-glass .panel { background: rgba(var(--glass-rgb2), calc(var(--glass-op) * .75)); backdrop-filter: blur(calc(var(--glass-blur) * .75)) saturate(170%); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .75)) saturate(170%); border: 1px solid rgba(var(--fx),.1); }
+  #flighty-root .wrap-glass .stat-cell { background: rgba(var(--glass-rgb2), calc(var(--glass-op) * .75)); backdrop-filter: blur(calc(var(--glass-blur) * .6)) saturate(160%); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .6)) saturate(160%); }
   #flighty-root .wrap-glass .stat-strip { background: rgba(var(--fx),.08); border-color: rgba(var(--fx),.1); }
   #flighty-root .wrap-glass .add-form { background: rgba(var(--fx),.03); border-radius: 12px; padding: 14px; }
 
   #flighty-root .app-topbar { display:flex; align-items:center; justify-content:space-between; gap: 12px; padding: 12px 16px; border-radius: 14px; flex-wrap: wrap; background: var(--bg-panel); border: 1px solid var(--line); margin-bottom: 18px; }
   #flighty-root .app-shell .app-topbar { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; z-index: 1100; margin-bottom: 0; border-radius: 18px; }
-  #flighty-root .app-topbar-left { font-size: 14px; font-weight: 700; display:flex; flex-direction:column; align-items:center; gap: 6px; }
+  #flighty-root .app-topbar-left { font-size: 14px; font-weight: 700; display:flex; flex-direction:row; align-items:center; gap: 10px; }
   #flighty-root .app-topbar-right { text-align: right; font-size: 9.5px; color: var(--text-dim); line-height: 1.5; }
   #flighty-root .app-date { font-weight: 600; color: var(--text-dim); }
   #flighty-root .app-sync.sync-ok { color: var(--teal); }
@@ -84,7 +86,7 @@
 
   #flighty-root .upcoming-sheet { position: absolute; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 450; max-height: 34vh; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; }
   @media (min-width: 861px) {
-    #flighty-root .upcoming-sheet { right: auto; top: 200px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 360px; max-height: none; }
+    #flighty-root .upcoming-sheet { right: auto; top: 160px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 360px; max-height: none; }
   }
   #flighty-root .home-year-chips { display:flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 0 14px 10px; flex-shrink: 0; }
   #flighty-root .home-year-chips::-webkit-scrollbar { display: none; }
@@ -117,7 +119,7 @@
   #flighty-root .upcoming-cities { font-size: 10.5px; color: var(--text-dim); margin-top: 1px; }
 
   /* --- Bottom nav (comune a entrambe le schermate), fissa e in vetro --- */
-  #flighty-root .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display:flex; padding-bottom: env(safe-area-inset-bottom); background: rgba(var(--glass-rgb), calc(var(--glass-op) * 1.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border-top: 1px solid rgba(var(--fx),.1); }
+  #flighty-root .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display:flex; padding-bottom: env(safe-area-inset-bottom); background: rgba(var(--glass-rgb), calc(var(--glass-op) * 1.05)); backdrop-filter: blur(calc(var(--glass-blur) * .9)) saturate(180%); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .9)) saturate(180%); border-top: 1px solid rgba(var(--fx),.1); }
   #flighty-root .nav-btn { flex: 1; display:flex; flex-direction:column; align-items:center; gap: 4px; background: none; border: none; color: var(--text-faint); padding: 10px 0 10px; font-size: 10.5px; cursor: pointer; transition: color .15s; }
   #flighty-root .nav-btn .nav-icon { display:flex; }
   #flighty-root .nav-btn .nav-icon svg { width: 21px; height: 21px; }
@@ -192,7 +194,7 @@
 
   #flighty-root .map-box { width: 100%; height: 480px; border-radius: 10px; overflow: hidden; background: #0A0F1C; position: relative; }
   #flighty-root #leaflet-map { width: 100%; height: 100%; }
-  #flighty-root .map-fab-stack { position: absolute; top: 128px; right: 12px; z-index: 500; display: flex; flex-direction: column; gap: 8px; }
+  #flighty-root .map-fab-stack { position: absolute; top: 84px; right: 12px; z-index: 500; display: flex; flex-direction: column; gap: 8px; }
   #flighty-root .app-shell .leaflet-top.leaflet-left { top: 84px; }
   #flighty-root .map-fab { width: 40px; height: 40px; border-radius: 50%; background: rgba(18,26,44,.92); border: 1px solid var(--line); color: var(--text-dim); font-size: 17px; cursor: pointer; display:flex; align-items:center; justify-content:center; box-shadow: 0 3px 10px rgba(0,0,0,.4); transition: all .15s; backdrop-filter: blur(6px); }
   #flighty-root .map-fab:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0,0,0,.5); }
@@ -415,7 +417,7 @@
   #flighty-root .set-back { background: rgba(var(--fx),.08); border: 1px solid var(--line); color: var(--text); width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; }
   #flighty-root .set-title { font-size: 20px; font-weight: 700; }
   #flighty-root .set-cat { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); margin: 22px 4px 8px; font-weight: 600; }
-  #flighty-root .set-card { background: rgba(var(--glass-rgb2), calc(var(--glass-op) * .75)); backdrop-filter: blur(18px) saturate(170%); -webkit-backdrop-filter: blur(18px) saturate(170%); border: 1px solid rgba(var(--fx),.12); border-radius: 16px; overflow: hidden; }
+  #flighty-root .set-card { background: rgba(var(--glass-rgb2), calc(var(--glass-op) * .75)); backdrop-filter: blur(calc(var(--glass-blur) * .75)) saturate(170%); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .75)) saturate(170%); border: 1px solid rgba(var(--fx),.12); border-radius: 16px; overflow: hidden; }
   #flighty-root .set-row { display:flex; align-items:center; justify-content:space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid rgba(var(--fx),.08); }
   #flighty-root .set-row:last-child { border-bottom: none; }
   #flighty-root .set-row-col { flex-direction: column; align-items: stretch; gap: 10px; }
@@ -431,6 +433,22 @@
   #flighty-root .set-btn.danger { color: var(--coral); border-color: rgba(240,117,90,.4); }
   #flighty-root .set-user { display:flex; align-items:center; gap: 12px; }
   #flighty-root .set-user .avatar-btn { cursor: default; width: 44px; height: 44px; }
+
+  #flighty-root .wrap, #flighty-root .upcoming-sheet, #flighty-root .app-topbar, #flighty-root .bottom-nav { zoom: var(--ui-zoom); }
+  #flighty-root .wrap .app-topbar { zoom: 1; }
+  #flighty-root .set-row { flex-wrap: wrap; }
+  #flighty-root .set-row > div:first-child { flex: 1 1 140px; min-width: 0; }
+  #flighty-root .set-row-col > div:first-child { flex: 0 0 auto; }
+  #flighty-root .seg { flex-wrap: wrap; max-width: 100%; }
+  #flighty-root .seg button { white-space: nowrap; padding: 6px 10px; }
+  #flighty-root .swatches { display:flex; gap: 8px; flex-wrap: wrap; }
+  #flighty-root .swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: 0 0 0 1px rgba(var(--fx),.25); }
+  #flighty-root .swatch.active { border-color: var(--text); box-shadow: 0 0 0 2px var(--teal); }
+  #flighty-root .set-progress { font-size: 12px; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; }
+  #flighty-root .set-btn[disabled] { opacity: .5; cursor: default; }
+  #flighty-root .set-select { background: rgba(var(--fx),.08); border: 1px solid var(--line); color: var(--text); padding: 7px 10px; border-radius: 9px; font-size: 12.5px; font-family: inherit; }
+  #flighty-root .set-select option { color: #111; }
+  #flighty-root .set-btns { display:flex; gap: 8px; flex-wrap: wrap; }
 </style>
 
 <script>
@@ -442,6 +460,7 @@ const MONTHS_IT = ['GEN','FEB','MAR','APR','MAG','GIU','LUG','AGO','SET','OTT','
 const MONTHS_FULL_IT = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 function todayFormatted() {
   const d = new Date();
+  if (typeof fmtDateShort === 'function' && appSettings.dateFmt !== 'it') return fmtDateShort(getTodayStr(), true);
   return `${d.getDate()} ${MONTHS_FULL_IT[d.getMonth()]} ${d.getFullYear()}`;
 }
 const HOME_AIRPORTS = ['BGY','MXP','LIN']; // aeroporti di casa (Milano/Bergamo area)
@@ -608,6 +627,98 @@ let companySortBy = 'count'; // 'count' | 'km' — ordinamento del box "Compagni
 let yearSortBy = 'count'; // 'count' | 'km' | 'year' — ordinamento del box "Voli per anno"
 let yearSortDir = 'desc'; // 'asc' | 'desc' — direzione quando yearSortBy === 'year'
 let mapStyle = 'satellite'; // 'satellite' | 'dark' (sovrascritto dalle impostazioni piu' sotto)
+// ---- Impostazioni app (salvate solo in localStorage del dispositivo) ----
+const SETTINGS_KEY = 'imieivoli_settings_v1';
+const DEFAULT_SETTINGS = {
+  theme: 'dark', accent: 'teal', transparency: 32, blur: 24, uiSize: 'normal',
+  mapDefault: 'satellite', mapLabels: 'on', routeColor: 'green', routeWidth: 'normal',
+  distUnit: 'km', currency: '€', dateFmt: 'it', hoursFmt: 'both',
+  startView: 'home', startYear: 'auto', includeWork: 'yes', co2Method: 'bands'
+};
+let appSettings = Object.assign({}, DEFAULT_SETTINGS);
+try {
+  const raw = localStorage.getItem(SETTINGS_KEY);
+  if (raw) { const s = JSON.parse(raw); if (s && typeof s === 'object') appSettings = Object.assign(appSettings, s); }
+} catch (e) {}
+function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings)); } catch (e) {} }
+const ACCENTS = {
+  teal:   { label: 'Verde acqua', dark: '#4FD8C9', light: '#0E9488' },
+  gold:   { label: 'Oro',         dark: '#E8B463', light: '#B77A1B' },
+  blue:   { label: 'Blu',         dark: '#5AA9FF', light: '#1F6FD1' },
+  violet: { label: 'Viola',       dark: '#A98BFF', light: '#6B45D6' },
+  rose:   { label: 'Rosa',        dark: '#FF7AA8', light: '#D1356B' }
+};
+const ROUTE_COLORS = { green: '#39FF8A', blue: '#3DB8FF', white: '#FFFFFF', pink: '#FF5CA8', violet: '#B58CFF' };
+const ROUTE_WIDTH_MUL = { thin: 0.65, normal: 1, thick: 1.5 };
+const TILE_BASES = [
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/',
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/',
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/',
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/'
+];
+const APP_VERSION = '2.0';
+function resolvedTheme() {
+  if (appSettings.theme === 'auto') {
+    try { return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; } catch (e) { return 'dark'; }
+  }
+  return appSettings.theme === 'light' ? 'light' : 'dark';
+}
+function applySettings() {
+  const r = document.getElementById('flighty-root');
+  const theme = resolvedTheme();
+  if (r) {
+    r.setAttribute('data-theme', theme);
+    r.style.setProperty('--glass-op', (1 - appSettings.transparency / 100).toFixed(2));
+    r.style.setProperty('--glass-blur', appSettings.blur + 'px');
+    r.style.setProperty('--ui-zoom', appSettings.uiSize === 'large' ? '1.12' : '1');
+    const ac = ACCENTS[appSettings.accent] || ACCENTS.teal;
+    r.style.setProperty('--teal', theme === 'light' ? ac.light : ac.dark);
+  }
+  const light = theme === 'light';
+  document.body.style.background = light ? '#EEF2F8' : '#070B14';
+  document.documentElement.style.background = light ? '#EEF2F8' : '#070B14';
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute('content', light ? '#EEF2F8' : '#070B14');
+}
+try {
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (appSettings.theme === 'auto') applySettings(); });
+} catch (e) {}
+
+// --- Formati (unità, valuta, date, ore) ---
+function per100Mul() { return appSettings.distUnit === 'mi' ? 1.609344 : 1; }
+function distUnit() { return appSettings.distUnit === 'mi' ? 'mi' : 'km'; }
+function distVal(km) { return appSettings.distUnit === 'mi' ? (km || 0) * 0.621371 : (km || 0); }
+function fmtDist(km) { return fmtNum(distVal(km)); }
+function cur() { return appSettings.currency || '€'; }
+function fmtDateShort(iso, withYear) {
+  const d = new Date(iso + 'T00:00:00');
+  if (appSettings.dateFmt === 'iso') return withYear ? iso : iso.slice(5);
+  if (appSettings.dateFmt === 'num') {
+    const dd = String(d.getDate()).padStart(2, '0'), mm = String(d.getMonth() + 1).padStart(2, '0');
+    return withYear ? `${dd}/${mm}/${d.getFullYear()}` : `${dd}/${mm}`;
+  }
+  return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: withYear ? 'numeric' : undefined });
+}
+function fmtHoursStat(hours) {
+  if (appSettings.hoursFmt === 'hours') return fmtNum(hours) + ' h';
+  if (appSettings.hoursFmt === 'days') return fmtNum(hours / 24, 1) + ' gg';
+  return `${fmtNum(hours)} <span class="stat-value-sub">(${fmtNum(hours / 24, 1)} gg)</span>`;
+}
+function isWorkFlight(f) { return (f.note || '').toUpperCase().includes('X LAVORO'); }
+const SETTINGS_SYNC_KEY = 'imieivoli_lastsync';
+let lastSyncAt = null;
+try { const t = localStorage.getItem(SETTINGS_SYNC_KEY); if (t) lastSyncAt = new Date(t); } catch (e) {}
+function getAvatarUrl() {
+  const md = (currentUser && currentUser.user_metadata) || {};
+  const url = md.avatar_url || md.picture || '';
+  try {
+    if (url) localStorage.setItem('imieivoli_avatar', url);
+    else return localStorage.getItem('imieivoli_avatar') || '';
+  } catch (e) {}
+  return url;
+}
+
+mapStyle = appSettings.mapDefault === 'dark' ? 'dark' : 'satellite';
 let syncMode = 'cloud'; // 'cloud' | 'offline'
 let editingFlightId = null; // uuid of flight currently being edited, or null when adding new
 function getTodayStr() { return new Date().toISOString().slice(0,10); }
@@ -721,6 +832,8 @@ async function loadFlights() {
     if (error) throw error;
     flights = (data || []).map(rowToFlight);
     syncMode = 'cloud';
+    lastSyncAt = new Date();
+    try { localStorage.setItem(SETTINGS_SYNC_KEY, lastSyncAt.toISOString()); } catch (e) {}
     saveFlightsToLocalCache();
   } catch (e) {
     console.error('Errore caricamento da Supabase', e);
@@ -774,7 +887,8 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 function estimateCO2Tonnes(km) {
   if (!km) return null;
   let factor; // g CO2/km
-  if (km < 1500) factor = 155;
+  if (appSettings.co2Method === 'flat') factor = 130;
+  else if (km < 1500) factor = 155;
   else if (km <= 3500) factor = 135;
   else factor = 117;
   return (km * factor) / 1000 / 1000; // g -> kg -> t
@@ -1050,8 +1164,9 @@ function initLeafletMap(mapFlights) {
   });
 
   window.__flightyLayers = { satLayer, satLabels, darkLayer, darkLabels };
-  if (mapStyle === 'satellite') { satLayer.addTo(map); satLabels.addTo(map); }
-  else { darkLayer.addTo(map); darkLabels.addTo(map); }
+  const showLabels = appSettings.mapLabels !== 'off';
+  if (mapStyle === 'satellite') { satLayer.addTo(map); if (showLabels) satLabels.addTo(map); }
+  else { darkLayer.addTo(map); if (showLabels) darkLabels.addTo(map); }
 
   const routeSeenFlown = {};
   const routeSeenFuture = {};
@@ -1065,7 +1180,7 @@ function initLeafletMap(mapFlights) {
     if (!routeFlightsMap[key]) routeFlightsMap[key] = [];
     routeFlightsMap[key].push(f);
   });
-  const FLOWN_COLOR = '#39FF8A';   // verde acceso — voli volati, ben visibile anche su satellite
+  const FLOWN_COLOR = ROUTE_COLORS[appSettings.routeColor] || '#39FF8A';   // verde acceso — voli volati, ben visibile anche su satellite
   const FUTURE_COLOR = '#E8A23D'; // arancione — voli in programma
   function buildRoutePopupHtml(c1, c2, key) {
     const info1 = airportInfo(c1), info2 = airportInfo(c2);
@@ -1084,7 +1199,7 @@ function initLeafletMap(mapFlights) {
       const [c1, c2] = key.split('-');
       const a = airportInfo(c1), b = airportInfo(c2);
       const weight = routeSeen[key];
-      const mainWeight = Math.min(1.5 + weight * 0.55, 4.5);
+      const mainWeight = Math.min(1.5 + weight * 0.55, 4.5) * (ROUTE_WIDTH_MUL[appSettings.routeWidth] || 1);
       if (glow) {
         // alone sottostante per far risaltare la linea anche su sfondo chiaro/satellitare
         L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
@@ -1132,8 +1247,9 @@ function switchMapStyle(style) {
   const layers = window.__flightyLayers;
   if (!map || !layers) { render(); return; }
   Object.values(layers).forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
-  if (style === 'satellite') { layers.satLayer.addTo(map); layers.satLabels.addTo(map); }
-  else { layers.darkLayer.addTo(map); layers.darkLabels.addTo(map); }
+  const showLabels = appSettings.mapLabels !== 'off';
+  if (style === 'satellite') { layers.satLayer.addTo(map); if (showLabels) layers.satLabels.addTo(map); }
+  else { layers.darkLayer.addTo(map); if (showLabels) layers.darkLabels.addTo(map); }
   const btns = root.querySelectorAll('.map-fab');
   btns.forEach(b => b.classList.toggle('active', b.getAttribute('data-style') === style));
 }
@@ -1167,11 +1283,11 @@ function renderStatStrip(stats) {
         <div class="stat-icon">🕐</div>
         <div class="v accent-coral">${stats.upcomingCount}</div>
         <div class="l">In programma</div>
-        ${stats.nextFlight ? `<div class="upcoming-next">Prossimo: ${stats.nextFlight.from}→${stats.nextFlight.to} · ${new Date(stats.nextFlight.date+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</div>` : ''}
+        ${stats.nextFlight ? `<div class="upcoming-next">Prossimo: ${stats.nextFlight.from}→${stats.nextFlight.to} · ${fmtDateShort(stats.nextFlight.date, false)}</div>` : ''}
       </div>
       <div class="stat-cell"><div class="stat-icon">✈️</div><div class="v accent-gold">${stats.totalFlights}</div><div class="l">Voli volati</div></div>
-      <div class="stat-cell"><div class="stat-icon">📍</div><div class="v accent-teal">${fmtNum(stats.totalKm)}</div><div class="l">Km percorsi</div></div>
-      <div class="stat-cell"><div class="stat-icon">⏱️</div><div class="v">${fmtNum(stats.totalHours)} <span class="stat-value-sub">(${fmtNum(stats.totalHours/24,1)} gg)</span></div><div class="l">Ore di volo</div></div>
+      <div class="stat-cell"><div class="stat-icon">📍</div><div class="v accent-teal">${fmtDist(stats.totalKm)}</div><div class="l">${distUnit() === 'mi' ? 'Miglia percorse' : 'Km percorsi'}</div></div>
+      <div class="stat-cell"><div class="stat-icon">⏱️</div><div class="v">${fmtHoursStat(stats.totalHours)}</div><div class="l">Ore di volo</div></div>
       <div class="stat-cell"><div class="stat-icon">🛬</div><div class="v accent-coral">${stats.airportSet.size}</div><div class="l">Aeroporti</div></div>
       <div class="stat-cell"><div class="stat-icon">🌍</div><div class="v accent-gold">${stats.countrySet.size}</div><div class="l">Paesi</div></div>
       <div class="stat-cell"><div class="stat-icon">🏢</div><div class="v accent-teal">${stats.companySet.size}</div><div class="l">Compagnie</div></div>
@@ -1209,7 +1325,7 @@ function renderDualRankList(counts, kmTotals, activeVal, dim, sortBy, labelFn, s
       <div class="rank-name">${labelFn ? labelFn(name) : name}</div>
       <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${(barKey(name)/maxVal*100).toFixed(0)}%"></div></div>
       <div class="rank-val-count${sortBy==='count'?' rank-val-primary':''}">${counts[name]}</div>
-      <div class="rank-val-km${sortBy==='km'?' rank-val-primary':''}">${fmtNum(kmTotals[name]||0)} km</div>
+      <div class="rank-val-km${sortBy==='km'?' rank-val-primary':''}">${fmtDist(kmTotals[name]||0)} ${distUnit()}</div>
     </div>`).join('') || '<div class="empty-note">Nessun dato</div>';
   return `<div class="rank-scroll">${rows}</div>`;
 }
@@ -1246,7 +1362,8 @@ function applyQuickFilters(list) {
 
 // Base list after quick chips (date range / work) + search — everything else builds on this.
 function getBaseFlights() {
-  return applyQuickFilters(flights);
+  const base = applyQuickFilters(flights);
+  return (currentView === 'stats' && appSettings.includeWork === 'no') ? base.filter(f => !isWorkFlight(f)) : base;
 }
 
 function renderRankPanels() {
@@ -1304,7 +1421,7 @@ function renderRankPanels() {
           <div class="sort-toggle">
             <button class="sort-btn ${yearSortBy==='year'?'active':''}" data-sortdim="year" data-sort="year">Anno ${yearSortBy==='year'?(yearSortDir==='asc'?'↑':'↓'):''}</button>
             <button class="sort-btn ${yearSortBy==='count'?'active':''}" data-sortdim="year" data-sort="count">Voli</button>
-            <button class="sort-btn ${yearSortBy==='km'?'active':''}" data-sortdim="year" data-sort="km">Km</button>
+            <button class="sort-btn ${yearSortBy==='km'?'active':''}" data-sortdim="year" data-sort="km">${distUnit() === 'mi' ? 'Mi' : 'Km'}</button>
           </div>
         </div>
         ${(() => {
@@ -1322,7 +1439,7 @@ function renderRankPanels() {
           <div class="panel-title"><span class="dot"></span>Compagnie</div>
           <div class="sort-toggle">
             <button class="sort-btn ${companySortBy==='count'?'active':''}" data-sortdim="company" data-sort="count">Voli</button>
-            <button class="sort-btn ${companySortBy==='km'?'active':''}" data-sortdim="company" data-sort="km">Km</button>
+            <button class="sort-btn ${companySortBy==='km'?'active':''}" data-sortdim="company" data-sort="km">${distUnit() === 'mi' ? 'Mi' : 'Km'}</button>
           </div>
         </div>
         ${renderDualRankList(companyCounts, companyKm, globalFilters.company, 'company', companySortBy, name => `${getAirlineLogo(name)} ${name}`)}
@@ -1339,7 +1456,7 @@ function renderRankPanels() {
           <div class="panel-title"><span class="dot"></span>Tipologia aereo</div>
           <div class="sort-toggle">
             <button class="sort-btn ${aircraftSortBy==='count'?'active':''}" data-sortdim="aircraft" data-sort="count">Voli</button>
-            <button class="sort-btn ${aircraftSortBy==='km'?'active':''}" data-sortdim="aircraft" data-sort="km">Km</button>
+            <button class="sort-btn ${aircraftSortBy==='km'?'active':''}" data-sortdim="aircraft" data-sort="km">${distUnit() === 'mi' ? 'Mi' : 'Km'}</button>
           </div>
         </div>
         ${renderDualRankList(aircraftCounts, aircraftKm, globalFilters.aircraft, 'aircraft', aircraftSortBy, null)}
@@ -1377,13 +1494,13 @@ function renderPass(f, idx) {
       let badge = '';
       if (avg) {
         const diff = (per100 - avg) / avg;
-        if (diff < -0.15) badge = `<span class="price-badge price-badge-low" title="Più economico della tua media (€${fmtNum(avg,2)}/100Km)">↓</span>`;
-        else if (diff > 0.15) badge = `<span class="price-badge price-badge-high" title="Più costoso della tua media (€${fmtNum(avg,2)}/100Km)">↑</span>`;
-        else badge = `<span class="price-badge price-badge-mid" title="Nella tua media (€${fmtNum(avg,2)}/100Km)">●</span>`;
+        if (diff < -0.15) badge = `<span class="price-badge price-badge-low" title="Più economico della tua media (${cur()}${fmtNum(avg*per100Mul(),2)}/100${distUnit()})">↓</span>`;
+        else if (diff > 0.15) badge = `<span class="price-badge price-badge-high" title="Più costoso della tua media (${cur()}${fmtNum(avg*per100Mul(),2)}/100${distUnit()})">↑</span>`;
+        else badge = `<span class="price-badge price-badge-mid" title="Nella tua media (${cur()}${fmtNum(avg*per100Mul(),2)}/100${distUnit()})">●</span>`;
       }
-      per100Html = ` <span class="pass-per100">(€${fmtNum(per100,2)}/100Km)</span>${badge}`;
+      per100Html = ` <span class="pass-per100">(${cur()}${fmtNum(per100*per100Mul(),2)}/100${distUnit()})</span>${badge}`;
     }
-    priceLineHtml = `<div class="pass-line-price"><span class="pass-price">€${fmtNum(f.price,2)}</span>${per100Html}</div>`;
+    priceLineHtml = `<div class="pass-line-price"><span class="pass-price">${cur()}${fmtNum(f.price,2)}</span>${per100Html}</div>`;
   }
 
   const co2Tonnes = estimateCO2Tonnes(f.km);
@@ -1409,7 +1526,7 @@ function renderPass(f, idx) {
         <div class="pass-line-fixed">
           ${f.aircraft ? `<span>${f.aircraft}</span>` : ''}
           ${f.tail ? `<span class="pass-tail${isRepeatTail?' pass-tail-repeat':''}"${isRepeatTail?` data-tail="${f.tail}" title="Aereo visto ${tailCounts[f.tail]} volte — clicca per vedere gli altri voli"`:''}>${f.tail}</span>` : ''}
-          ${f.km ? `<span>${fmtNum(f.km)} km</span>` : ''}
+          ${f.km ? `<span>${fmtDist(f.km)} ${distUnit()}</span>` : ''}
         </div>
         ${priceLineHtml}
         <div class="pass-line-extra">
@@ -1440,9 +1557,8 @@ function aircraftDatalistOptions() {
   return models.map(a => `<option value="${a.replace(/"/g,'&quot;')}"></option>`).join('');
 }
 
-function exportBackupXlsx() {
-  if (typeof XLSX === 'undefined') { alert('Libreria di esportazione non disponibile.'); return; }
-  const rows = flights.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(f => ({
+function flightsToExportRows() {
+  return flights.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(f => ({
     'Data': f.date,
     'Numero volo': f.flightNumber || '',
     'Compagnia': f.company,
@@ -1457,6 +1573,19 @@ function exportBackupXlsx() {
     'Prezzo (€)': f.price || '',
     'Note': f.note || ''
   }));
+}
+function exportBackupJson() {
+  const payload = { app: 'i-miei-voli', version: 1, exportedAt: new Date().toISOString(), flights: flightsToExportRows() };
+  const blob = new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `backup_voli_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function exportBackupXlsx() {
+  if (typeof XLSX === 'undefined') { alert('Libreria di esportazione non disponibile.'); return; }
+  const rows = flightsToExportRows();
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Voli');
@@ -1507,17 +1636,24 @@ async function handleImportFile(e) {
   const file = e.target.files && e.target.files[0];
   e.target.value = ''; // reset per permettere di riselezionare lo stesso file
   if (!file) return;
-  if (typeof XLSX === 'undefined') { alert('Libreria di importazione non disponibile.'); return; }
+  const isJson = /\.json$/i.test(file.name);
+  if (!isJson && typeof XLSX === 'undefined') { alert('Libreria di importazione non disponibile.'); return; }
 
   let rawRows;
   try {
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    if (isJson) {
+      const parsed = JSON.parse(await file.text());
+      rawRows = Array.isArray(parsed) ? parsed : (parsed && parsed.flights);
+      if (!Array.isArray(rawRows)) throw new Error('formato non valido');
+    } else {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    }
   } catch (err) {
     console.error('Errore lettura file', err);
-    alert('Non sono riuscito a leggere questo file. Assicurati che sia un .xlsx valido.');
+    alert('Non sono riuscito a leggere questo file. Assicurati che sia un .xlsx o un backup .json valido.');
     return;
   }
   if (!rawRows.length) { alert('Il file sembra vuoto.'); return; }
@@ -1656,9 +1792,6 @@ function renderTimeline() {
       <div class="panel-head">
         <div class="panel-title"><span class="dot"></span>I tuoi voli (${list.length})</div>
         <div class="panel-head-actions">
-          <button class="export-btn" id="export-backup" title="Scarica un file Excel con tutti i voli">⬇ Esporta backup</button>
-          <button class="export-btn" id="import-data" title="Importa in blocco un file Excel con più voli">⬆ Importa Excel</button>
-          <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none"/>
           <button class="add-btn" id="toggle-add">+ Aggiungi volo</button>
         </div>
       </div>
@@ -1702,8 +1835,8 @@ function renderTimeline() {
     </div>`;
 }
 
-let currentView = 'home'; // 'home' | 'flown' | 'stats' | 'settings'
-let homeYearFilter = 'upcoming'; // 'upcoming' | 'all-flown' | anno specifico (es. '2024') — filtro nel pannello Home
+let currentView = ['home','flown','stats'].includes(appSettings.startView) ? appSettings.startView : 'home'; // 'home' | 'flown' | 'stats' | 'settings'
+let homeYearFilter = appSettings.startYear === 'all' ? 'all-flown' : (appSettings.startYear === 'current' ? String(new Date().getFullYear()) : 'upcoming'); // 'upcoming' | 'all-flown' | anno specifico (es. '2024') — filtro nel pannello Home
 let pendingHighlightFlightId = null; // id del volo da evidenziare dopo la navigazione dalla Home
 let homeYearChipsScroll = 0; // posizione di scorrimento della riga anni, da conservare tra un render e l'altro
 
@@ -1714,36 +1847,6 @@ function daysUntil(dateStr) {
 }
 
 
-// ---- Impostazioni app (salvate solo in localStorage del dispositivo) ----
-const SETTINGS_KEY = 'imieivoli_settings_v1';
-let appSettings = { theme: 'dark', transparency: 32, mapDefault: 'satellite' };
-try {
-  const raw = localStorage.getItem(SETTINGS_KEY);
-  if (raw) { const s = JSON.parse(raw); if (s && typeof s === 'object') appSettings = Object.assign(appSettings, s); }
-} catch (e) {}
-function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings)); } catch (e) {} }
-mapStyle = appSettings.mapDefault === 'dark' ? 'dark' : 'satellite';
-function applySettings() {
-  const r = document.getElementById('flighty-root');
-  if (r) {
-    r.setAttribute('data-theme', appSettings.theme);
-    r.style.setProperty('--glass-op', (1 - appSettings.transparency / 100).toFixed(2));
-  }
-  const light = appSettings.theme === 'light';
-  document.body.style.background = light ? '#EEF2F8' : '#070B14';
-  document.documentElement.style.background = light ? '#EEF2F8' : '#070B14';
-  const m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.setAttribute('content', light ? '#EEF2F8' : '#070B14');
-}
-function getAvatarUrl() {
-  const md = (currentUser && currentUser.user_metadata) || {};
-  const url = md.avatar_url || md.picture || '';
-  try {
-    if (url) localStorage.setItem('imieivoli_avatar', url);
-    else return localStorage.getItem('imieivoli_avatar') || '';
-  } catch (e) {}
-  return url;
-}
 function renderAvatar(extraAttrs) {
   const url = getAvatarUrl();
   const md = (currentUser && currentUser.user_metadata) || {};
@@ -1751,10 +1854,78 @@ function renderAvatar(extraAttrs) {
   const inner = url ? `<img src="${url}" alt="" referrerpolicy="no-referrer" onerror="this.remove()"/>` : (name ? name.trim()[0].toUpperCase() : '👤');
   return `<button class="avatar-btn" ${extraAttrs || ''} title="Impostazioni">${inner}</button>`;
 }
+
+// --- Mappe offline: scarica le zone attorno agli aeroporti nella cache del service worker ---
+function lonLatToTile(lat, lon, z) {
+  const n = Math.pow(2, z);
+  const x = Math.floor((lon + 180) / 360 * n);
+  const latR = lat * Math.PI / 180;
+  const y = Math.floor((1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n);
+  return [Math.max(0, Math.min(n - 1, x)), Math.max(0, Math.min(n - 1, y))];
+}
+async function updateTilesCount() {
+  const el = document.getElementById('tiles-count');
+  if (!el || !window.caches) return;
+  try {
+    const keys = await caches.keys();
+    const name = keys.find(k => k.indexOf('tiles') >= 0);
+    if (!name) { el.textContent = 'Nessuna mappa salvata.'; return; }
+    const n = (await (await caches.open(name)).keys()).length;
+    el.textContent = `Salvati ${fmtNum(n)} riquadri.`;
+  } catch (e) {}
+}
+async function downloadOfflineTiles() {
+  const prog = () => document.getElementById('tiles-progress');
+  const btn = document.getElementById('tiles-download');
+  const scope = (document.getElementById('tiles-scope') || {}).value || 'upcoming';
+  if (!navigator.onLine) { prog().textContent = 'Serve la connessione per scaricare le mappe.'; return; }
+  if (!(navigator.serviceWorker && navigator.serviceWorker.controller)) {
+    prog().textContent = 'Chiudi e riapri l\'app una volta, poi riprova (serve per salvare le mappe).'; return;
+  }
+  const list = scope === 'upcoming' ? flights.filter(isFuture) : flights;
+  const codes = new Set(); list.forEach(f => { codes.add(f.from); codes.add(f.to); });
+  const pts = [...codes].map(c => airportInfo(c)).filter(a => a && a.lat && a.lon);
+  if (!pts.length) { prog().textContent = scope === 'upcoming' ? 'Nessun volo in programma.' : 'Nessun aeroporto trovato.'; return; }
+  const zooms = scope === 'upcoming' ? [5, 6, 7, 8, 9] : [5, 6, 7];
+  const bases = appSettings.mapDefault === 'dark' ? [TILE_BASES[2], TILE_BASES[3]] : [TILE_BASES[0], TILE_BASES[1]];
+  const urls = new Set();
+  pts.forEach(a => zooms.forEach(z => {
+    const [cx, cy] = lonLatToTile(a.lat, a.lon, z);
+    const n = Math.pow(2, z);
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const x = cx + dx, y = cy + dy;
+      if (x < 0 || y < 0 || x >= n || y >= n) continue;
+      bases.forEach(b => urls.add(`${b}${z}/${y}/${x}`));
+    }
+  }));
+  const all = [...urls];
+  btn.disabled = true;
+  let done = 0, failed = 0, i = 0;
+  const worker = async () => {
+    while (i < all.length) {
+      const url = all[i++];
+      try { const r = await fetch(url, { mode: 'cors' }); if (!r.ok) failed++; } catch (e) { failed++; }
+      done++;
+      const el = prog(); if (el && done % 5 === 0) el.textContent = `Scarico… ${done}/${all.length}`;
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+  const el = prog();
+  if (el) el.textContent = failed ? `Finito: ${all.length - failed} riquadri salvati, ${failed} non riusciti.` : `Fatto: ${all.length} riquadri salvati ✓`;
+  const b2 = document.getElementById('tiles-download'); if (b2) b2.disabled = false;
+  updateTilesCount();
+}
+
 function renderSettingsView() {
   const md = (currentUser && currentUser.user_metadata) || {};
   const name = md.full_name || md.name || '';
-  const seg = (key, opts) => `<div class="seg">${opts.map(o => `<button data-set="${key}" data-val="${o[0]}" class="${appSettings[key]===o[0]?'active':''}">${o[1]}</button>`).join('')}</div>`;
+  const S = appSettings;
+  const seg = (key, opts) => `<div class="seg">${opts.map(o => `<button data-set="${key}" data-val="${o[0]}" class="${S[key]===o[0]?'active':''}">${o[1]}</button>`).join('')}</div>`;
+  const row = (label, sub, ctl) => `<div class="set-row"><div><div class="set-label">${label}</div>${sub ? `<div class="set-sub">${sub}</div>` : ''}</div>${ctl}</div>`;
+  const theme = resolvedTheme();
+  const accentSw = Object.keys(ACCENTS).map(k => `<button class="swatch ${S.accent===k?'active':''}" data-set="accent" data-val="${k}" title="${ACCENTS[k].label}" style="background:${theme==='light'?ACCENTS[k].light:ACCENTS[k].dark}"></button>`).join('');
+  const routeSw = Object.keys(ROUTE_COLORS).map(k => `<button class="swatch ${S.routeColor===k?'active':''}" data-set="routeColor" data-val="${k}" style="background:${ROUTE_COLORS[k]}"></button>`).join('');
+  const lastSync = lastSyncAt ? lastSyncAt.toLocaleString('it-IT', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'mai su questo dispositivo';
   return `
     <div class="bg-grid"></div>
     <div class="wrap wrap-stats wrap-glass wrap-settings">
@@ -1762,22 +1933,58 @@ function renderSettingsView() {
 
       <div class="set-cat">Aspetto</div>
       <div class="set-card">
-        <div class="set-row">
-          <div><div class="set-label">Tema</div><div class="set-sub">Sfondo nero o bianco</div></div>
-          ${seg('theme', [['dark','⚫ Nero'],['light','⚪ Bianco']])}
+        ${row('Tema', 'Nero, bianco o automatico (segue il telefono)', seg('theme', [['dark','⚫ Nero'],['light','⚪ Bianco'],['auto','Auto']]))}
+        ${row('Colore d\'accento', 'Pulsanti, evidenziazioni e filtri', `<div class="swatches">${accentSw}</div>`)}
+        <div class="set-row set-row-col">
+          <div><div class="set-label">Trasparenza vetro liquido</div><div class="set-sub">Più alta = più si vede la mappa dietro ai pannelli</div></div>
+          <div class="slider-line"><input type="range" id="set-glass" min="0" max="85" step="1" value="${S.transparency}"/><span class="slider-val" id="set-glass-val">${S.transparency}%</span></div>
         </div>
         <div class="set-row set-row-col">
-          <div><div class="set-label">Trasparenza vetro liquido</div><div class="set-sub">Pannelli, barra in alto e menu in basso: più alta = più si vede la mappa</div></div>
-          <div class="slider-line"><input type="range" id="set-glass" min="0" max="85" step="1" value="${appSettings.transparency}"/><span class="slider-val" id="set-glass-val">${appSettings.transparency}%</span></div>
+          <div><div class="set-label">Sfocatura del vetro</div><div class="set-sub">Quanto sfoca ciò che sta dietro ai pannelli</div></div>
+          <div class="slider-line"><input type="range" id="set-blur" min="0" max="40" step="1" value="${S.blur}"/><span class="slider-val" id="set-blur-val">${S.blur}px</span></div>
         </div>
+        ${row('Dimensione del testo', 'Ingrandisce pannelli e schede', seg('uiSize', [['normal','Normale'],['large','Grande']]))}
       </div>
 
       <div class="set-cat">Mappa</div>
       <div class="set-card">
-        <div class="set-row">
-          <div><div class="set-label">Vista predefinita</div><div class="set-sub">Quella usata all'apertura dell'app</div></div>
-          ${seg('mapDefault', [['satellite','🛰️ Satellite'],['dark','🌑 Scura']])}
+        ${row('Vista predefinita', 'Quella usata all\'apertura dell\'app', seg('mapDefault', [['satellite','🛰️ Satellite'],['dark','🌑 Scura']]))}
+        ${row('Etichette dei luoghi', 'Nomi di città e confini sulla mappa', seg('mapLabels', [['on','Sì'],['off','No']]))}
+        ${row('Colore rotte volate', 'Le rotte in programma restano arancioni', `<div class="swatches">${routeSw}</div>`)}
+        ${row('Spessore rotte', '', seg('routeWidth', [['thin','Sottile'],['normal','Normale'],['thick','Spesso']]))}
+        <div class="set-row set-row-col">
+          <div><div class="set-label">Scarica mappe per l'uso offline</div><div class="set-sub">Salva le zone intorno agli aeroporti (livelli della vista predefinita), da fare con la connessione attiva. <span id="tiles-count"></span></div></div>
+          <div class="set-btns">
+            <select class="set-select" id="tiles-scope"><option value="upcoming">Aeroporti dei prossimi voli</option><option value="all">Tutti i miei aeroporti</option></select>
+            <button class="set-btn" id="tiles-download">Scarica</button>
+          </div>
+          <div class="set-progress" id="tiles-progress"></div>
         </div>
+      </div>
+
+      <div class="set-cat">Unità e formati</div>
+      <div class="set-card">
+        ${row('Distanze', '', seg('distUnit', [['km','Chilometri'],['mi','Miglia']]))}
+        ${row('Valuta', 'Cambia solo il simbolo, non converte gli importi', seg('currency', [['€','€'],['$','$'],['£','£']]))}
+        ${row('Formato data', '', seg('dateFmt', [['it','9 feb 2026'],['num','09/02/2026'],['iso','2026-02-09']]))}
+        ${row('Ore di volo totali', '', seg('hoursFmt', [['both','Ore + giorni'],['hours','Ore'],['days','Giorni']]))}
+      </div>
+
+      <div class="set-cat">Voli e statistiche</div>
+      <div class="set-card">
+        ${row('Schermata iniziale', 'Quella che si apre all\'avvio', seg('startView', [['home','Home'],['flown','Voli'],['stats','Statistiche']]))}
+        ${row('Filtro iniziale della Home', 'Cosa mostra l\'elenco in Home all\'apertura', seg('startYear', [['auto','Prossimi'],['all','Tutti'],['current','Anno in corso']]))}
+        ${row('Voli di lavoro nelle statistiche', 'Voli con nota "X LAVORO" nella scheda Statistiche', seg('includeWork', [['yes','Inclusi'],['no','Esclusi']]))}
+        ${row('Calcolo CO₂', 'Stima per passeggero', seg('co2Method', [['bands','Per distanza'],['flat','130 g/km']]))}
+      </div>
+
+      <div class="set-cat">Dati</div>
+      <div class="set-card">
+        ${row('Excel', 'Esporta tutti i voli o importa un file con più voli', `<div class="set-btns"><button class="set-btn" id="export-backup">⬇ Esporta</button><button class="set-btn" id="import-data">⬆ Importa</button></div>`)}
+        ${row('Backup file (.json)', 'Copia completa da conservare e ripristinare', `<div class="set-btns"><button class="set-btn" id="export-json">⬇ Backup</button><button class="set-btn" id="import-json">⬆ Ripristina</button></div>`)}
+        <input type="file" id="import-file-input" accept=".xlsx,.xls,.json" style="display:none"/>
+        ${row('Sincronizzazione', `Ultima volta: ${lastSync}`, `<button class="set-btn" id="set-sync">Sincronizza ora</button>`)}
+        ${row('Copia offline', 'Voli e mappe salvati su questo dispositivo', `<button class="set-btn" id="set-clearcache">Svuota</button>`)}
       </div>
 
       <div class="set-cat">Account</div>
@@ -1788,12 +1995,10 @@ function renderSettingsView() {
         </div>
       </div>
 
-      <div class="set-cat">Dati su questo dispositivo</div>
+      <div class="set-cat">Info</div>
       <div class="set-card">
-        <div class="set-row">
-          <div><div class="set-label">Copia offline</div><div class="set-sub">Voli e mappe salvati per l'uso senza connessione</div></div>
-          <button class="set-btn" id="set-clearcache">Svuota</button>
-        </div>
+        ${row('I miei voli', 'Versione ' + APP_VERSION + ' · ' + flights.length + ' voli registrati', '')}
+        <div class="set-row"><div class="set-sub" style="line-height:1.6">Dati aeroporti e compagnie: OpenFlights · Mappe: Esri e Leaflet · Loghi: Kiwi.com · Bandiere: flagcdn · Excel: SheetJS · Accesso e dati: Supabase · CO₂: stima indicativa per passeggero.</div></div>
       </div>
       <div class="footer-note">Le impostazioni sono salvate su questo dispositivo.</div>
     </div>
@@ -1803,7 +2008,7 @@ function renderSettingsView() {
 function renderTopBar(title, withAvatar) {
   return `
     <div class="app-topbar glass-panel">
-      <div class="app-topbar-left"><span>${title}</span>${withAvatar ? renderAvatar('id="avatar-open"') : ''}</div>
+      <div class="app-topbar-left">${withAvatar ? renderAvatar('id="avatar-open"') : ''}<span>${title}</span></div>
       <div class="app-topbar-right">
         <div class="app-date">${todayFormatted()}</div>
         <div class="app-sync ${syncMode==='cloud'?'sync-ok':(syncMode==='offline-cached'?'sync-cached':'sync-off')}">${syncMode==='cloud' ? '● Sincronizzato' : (syncMode==='offline-cached' ? '◐ Offline (dati salvati)' : '○ Offline (nessun dato salvato)')}</div>
@@ -1833,7 +2038,7 @@ function renderFlightRow(f, idx) {
     bigVal = d.getDate();
     smallLbl = MONTHS_IT[d.getMonth()];
   }
-  const dateFmt = new Date(f.date + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: future ? undefined : 'numeric' });
+  const dateFmt = fmtDateShort(f.date, !future);
   return `
     <div class="upcoming-row" data-idx="${idx}">
       <div class="upcoming-countdown">
@@ -1976,29 +2181,51 @@ function bindEvents(mapFlights) {
   if (currentView === 'settings') {
     const back = root.querySelector('#set-back');
     if (back) back.addEventListener('click', () => { currentView = 'home'; render(); });
-    root.querySelectorAll('.seg button[data-set]').forEach(btn => {
+    root.querySelectorAll('[data-set]').forEach(btn => {
       btn.addEventListener('click', () => {
         const key = btn.getAttribute('data-set'), val = btn.getAttribute('data-val');
         appSettings[key] = val; saveSettings();
         if (key === 'mapDefault') mapStyle = val;
+        const y = window.scrollY;
         render();
+        window.scrollTo(0, y);
       });
     });
-    const sl = root.querySelector('#set-glass');
-    if (sl) sl.addEventListener('input', () => {
-      appSettings.transparency = parseInt(sl.value, 10);
-      root.querySelector('#set-glass-val').textContent = sl.value + '%';
-      applySettings();
-    });
-    if (sl) sl.addEventListener('change', saveSettings);
+    const bindSlider = (id, valId, key, suffix) => {
+      const el = root.querySelector('#' + id);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        appSettings[key] = parseInt(el.value, 10);
+        root.querySelector('#' + valId).textContent = el.value + suffix;
+        applySettings();
+      });
+      el.addEventListener('change', saveSettings);
+    };
+    bindSlider('set-glass', 'set-glass-val', 'transparency', '%');
+    bindSlider('set-blur', 'set-blur-val', 'blur', 'px');
     const lo = root.querySelector('#set-logout');
     if (lo) lo.addEventListener('click', logout);
+    const ej = root.querySelector('#export-json');
+    if (ej) ej.addEventListener('click', exportBackupJson);
+    const ij = root.querySelector('#import-json');
+    if (ij) ij.addEventListener('click', triggerImportFile);
+    const sy = root.querySelector('#set-sync');
+    if (sy) sy.addEventListener('click', async () => {
+      sy.disabled = true; sy.textContent = 'Sincronizzo…';
+      const y = window.scrollY;
+      await loadFlights();
+      window.scrollTo(0, y);
+    });
     const cc = root.querySelector('#set-clearcache');
     if (cc) cc.addEventListener('click', async () => {
       try { localStorage.removeItem(LOCAL_CACHE_KEY); } catch (e) {}
       try { if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.filter(k => k.indexOf('tiles') >= 0).map(k => caches.delete(k))); } } catch (e) {}
       cc.textContent = 'Fatto ✓';
+      updateTilesCount();
     });
+    const td = root.querySelector('#tiles-download');
+    if (td) td.addEventListener('click', downloadOfflineTiles);
+    updateTilesCount();
   }
   const logoutLink = root.querySelector('#logout-link');
   if (logoutLink) logoutLink.addEventListener('click', logout);
