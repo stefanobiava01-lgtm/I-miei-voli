@@ -31,6 +31,12 @@
     --text: #EAF0FA;
     --text-dim: #8B99B8;
     --text-faint: #55628A;
+    --fx: 255,255,255;
+    --glass-rgb: 12,17,30;
+    --glass-rgb2: 20,28,46;
+    --glass-op: 0.68;
+    --pop-bg: #0E1524;
+    --ctl-bg: #121A2C;
     font-family: 'Inter', -apple-system, sans-serif;
     background: var(--bg);
     color: var(--text);
@@ -59,16 +65,16 @@
   #flighty-root .app-map-full #leaflet-map { width: 100%; height: 100%; }
 
   #flighty-root .app-topbar.glass-panel,
-  #flighty-root .upcoming-sheet.glass-panel { background: rgba(12,17,30,.68); backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 28px rgba(0,0,0,.4); }
-  #flighty-root .wrap-glass .panel { background: rgba(20,28,46,.5); backdrop-filter: blur(18px) saturate(170%); -webkit-backdrop-filter: blur(18px) saturate(170%); border: 1px solid rgba(255,255,255,.1); }
-  #flighty-root .wrap-glass .stat-cell { background: rgba(20,28,46,.5); backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); }
-  #flighty-root .wrap-glass .stat-strip { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.1); }
-  #flighty-root .wrap-glass .add-form { background: rgba(255,255,255,.03); border-radius: 12px; padding: 14px; }
+  #flighty-root .upcoming-sheet.glass-panel { background: rgba(var(--glass-rgb), var(--glass-op)); backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%); border: 1px solid rgba(var(--fx),.12); box-shadow: 0 8px 28px rgba(0,0,0,.4); }
+  #flighty-root .wrap-glass .panel { background: rgba(var(--glass-rgb2), calc(var(--glass-op) * .75)); backdrop-filter: blur(18px) saturate(170%); -webkit-backdrop-filter: blur(18px) saturate(170%); border: 1px solid rgba(var(--fx),.1); }
+  #flighty-root .wrap-glass .stat-cell { background: rgba(var(--glass-rgb2), calc(var(--glass-op) * .75)); backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); }
+  #flighty-root .wrap-glass .stat-strip { background: rgba(var(--fx),.08); border-color: rgba(var(--fx),.1); }
+  #flighty-root .wrap-glass .add-form { background: rgba(var(--fx),.03); border-radius: 12px; padding: 14px; }
 
   #flighty-root .app-topbar { display:flex; align-items:center; justify-content:space-between; gap: 12px; padding: 12px 16px; border-radius: 14px; flex-wrap: wrap; background: var(--bg-panel); border: 1px solid var(--line); margin-bottom: 18px; }
   #flighty-root .app-shell .app-topbar { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; z-index: 1100; margin-bottom: 0; border-radius: 18px; }
-  #flighty-root .app-topbar-left { font-size: 14px; font-weight: 700; }
-  #flighty-root .app-topbar-right { text-align: right; font-size: 9.5px; color: #A9B6D4; line-height: 1.5; }
+  #flighty-root .app-topbar-left { font-size: 14px; font-weight: 700; display:flex; flex-direction:column; align-items:center; gap: 6px; }
+  #flighty-root .app-topbar-right { text-align: right; font-size: 9.5px; color: var(--text-dim); line-height: 1.5; }
   #flighty-root .app-date { font-weight: 600; color: var(--text-dim); }
   #flighty-root .app-sync.sync-ok { color: var(--teal); }
   #flighty-root .app-sync.sync-off { color: var(--coral); }
@@ -78,7 +84,7 @@
 
   #flighty-root .upcoming-sheet { position: absolute; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 450; max-height: 34vh; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; }
   @media (min-width: 861px) {
-    #flighty-root .upcoming-sheet { right: auto; top: 160px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 360px; max-height: none; }
+    #flighty-root .upcoming-sheet { right: auto; top: 200px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 360px; max-height: none; }
   }
   #flighty-root .home-year-chips { display:flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 0 14px 10px; flex-shrink: 0; }
   #flighty-root .home-year-chips::-webkit-scrollbar { display: none; }
@@ -89,7 +95,7 @@
     #flighty-root .home-year-chips::-webkit-scrollbar-track { background: transparent; }
   }
   #flighty-root .home-year-chip { flex-shrink: 0; }
-  #flighty-root .home-year-chip { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: var(--text-dim); font-size: 11px; padding: 4px 11px; border-radius: 14px; cursor: pointer; transition: all .15s; }
+  #flighty-root .home-year-chip { background: rgba(var(--fx),.06); border: 1px solid rgba(var(--fx),.12); color: var(--text-dim); font-size: 11px; padding: 4px 11px; border-radius: 14px; cursor: pointer; transition: all .15s; }
   #flighty-root .home-year-chip:hover { color: var(--text); }
   #flighty-root .home-year-chip.active { background: var(--teal); border-color: var(--teal); color: #061214; font-weight: 700; }
   #flighty-root .upcoming-sheet-head { display:flex; justify-content:space-between; align-items:center; padding: 13px 16px 8px; font-size: 13px; font-weight: 700; flex-shrink: 0; }
@@ -98,8 +104,8 @@
   #flighty-root .upcoming-sheet-list::-webkit-scrollbar { width: 6px; }
   #flighty-root .upcoming-sheet-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
   #flighty-root .upcoming-sheet-list::-webkit-scrollbar-track { background: transparent; }
-  #flighty-root .upcoming-row { display:flex; align-items:center; gap: 12px; padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,.08); cursor: pointer; transition: background .12s; border-radius: 8px; }
-  #flighty-root .upcoming-row:hover { background: rgba(255,255,255,.05); }
+  #flighty-root .upcoming-row { display:flex; align-items:center; gap: 12px; padding: 10px 8px; border-bottom: 1px solid rgba(var(--fx),.08); cursor: pointer; transition: background .12s; border-radius: 8px; }
+  #flighty-root .upcoming-row:hover { background: rgba(var(--fx),.05); }
   #flighty-root .upcoming-row:last-child { border-bottom: none; }
   #flighty-root .upcoming-countdown { text-align:center; flex-shrink: 0; width: 52px; }
   #flighty-root .upcoming-days { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: var(--coral); line-height: 1; }
@@ -108,10 +114,10 @@
   #flighty-root .upcoming-top { display:flex; justify-content:space-between; font-size: 11.5px; color: var(--text-dim); }
   #flighty-root .upcoming-route { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; margin-top: 2px; }
   #flighty-root .upcoming-arrow { color: var(--teal); font-weight: 400; }
-  #flighty-root .upcoming-cities { font-size: 10.5px; color: #8B99B8; margin-top: 1px; }
+  #flighty-root .upcoming-cities { font-size: 10.5px; color: var(--text-dim); margin-top: 1px; }
 
   /* --- Bottom nav (comune a entrambe le schermate), fissa e in vetro --- */
-  #flighty-root .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display:flex; padding-bottom: env(safe-area-inset-bottom); background: rgba(14,21,36,.72); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border-top: 1px solid rgba(255,255,255,.1); }
+  #flighty-root .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display:flex; padding-bottom: env(safe-area-inset-bottom); background: rgba(var(--glass-rgb), calc(var(--glass-op) * 1.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border-top: 1px solid rgba(var(--fx),.1); }
   #flighty-root .nav-btn { flex: 1; display:flex; flex-direction:column; align-items:center; gap: 4px; background: none; border: none; color: var(--text-faint); padding: 10px 0 10px; font-size: 10.5px; cursor: pointer; transition: color .15s; }
   #flighty-root .nav-btn .nav-icon { display:flex; }
   #flighty-root .nav-btn .nav-icon svg { width: 21px; height: 21px; }
@@ -169,7 +175,7 @@
   #flighty-root .rank-scroll { max-height: 260px; overflow-y: auto; padding-right: 4px; }
   #flighty-root .rank-scroll::-webkit-scrollbar { width: 6px; }
   #flighty-root .rank-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
-  #flighty-root .rank-row.clickable:hover { background: rgba(255,255,255,.03); }
+  #flighty-root .rank-row.clickable:hover { background: rgba(var(--fx),.03); }
   #flighty-root .rank-row.clickable.active { background: rgba(79,216,201,.1); }
   #flighty-root .rank-row.clickable.active .rank-name { color: var(--teal); font-weight: 600; }
 
@@ -186,7 +192,7 @@
 
   #flighty-root .map-box { width: 100%; height: 480px; border-radius: 10px; overflow: hidden; background: #0A0F1C; position: relative; }
   #flighty-root #leaflet-map { width: 100%; height: 100%; }
-  #flighty-root .map-fab-stack { position: absolute; top: 84px; right: 12px; z-index: 500; display: flex; flex-direction: column; gap: 8px; }
+  #flighty-root .map-fab-stack { position: absolute; top: 128px; right: 12px; z-index: 500; display: flex; flex-direction: column; gap: 8px; }
   #flighty-root .app-shell .leaflet-top.leaflet-left { top: 84px; }
   #flighty-root .map-fab { width: 40px; height: 40px; border-radius: 50%; background: rgba(18,26,44,.92); border: 1px solid var(--line); color: var(--text-dim); font-size: 17px; cursor: pointer; display:flex; align-items:center; justify-content:center; box-shadow: 0 3px 10px rgba(0,0,0,.4); transition: all .15s; backdrop-filter: blur(6px); }
   #flighty-root .map-fab:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0,0,0,.5); }
@@ -196,10 +202,10 @@
   #flighty-root .map-legend .sw { width: 8px; height: 8px; border-radius: 50%; display:inline-block; }
   /* Leaflet dark theme overrides */
   #flighty-root .leaflet-container { background: #0A0F1C; font-family: 'Inter', sans-serif; }
-  #flighty-root .leaflet-control-zoom a { background: #121A2C !important; color: #EAF0FA !important; border-color: rgba(148,168,210,0.14) !important; }
+  #flighty-root .leaflet-control-zoom a { background: var(--ctl-bg) !important; color: var(--text) !important; border-color: rgba(148,168,210,0.14) !important; }
   #flighty-root .leaflet-control-zoom a:hover { background: #1a2338 !important; }
-  #flighty-root .leaflet-popup-content-wrapper { background: #0E1524 !important; color: #EAF0FA !important; border: 1px solid rgba(148,168,210,0.14); border-radius: 8px !important; }
-  #flighty-root .leaflet-popup-tip { background: #0E1524 !important; }
+  #flighty-root .leaflet-popup-content-wrapper { background: var(--pop-bg) !important; color: var(--text) !important; border: 1px solid rgba(148,168,210,0.14); border-radius: 8px !important; }
+  #flighty-root .leaflet-popup-tip { background: var(--pop-bg) !important; }
   #flighty-root .leaflet-popup-content { font-size: 12.5px !important; margin: 10px 12px !important; }
   #flighty-root .leaflet-control-attribution { background: rgba(10,15,28,0.75) !important; color: #55628A !important; font-size: 9.5px !important; }
   #flighty-root .leaflet-control-attribution a { color: #8B99B8 !important; }
@@ -211,7 +217,7 @@
   #flighty-root .rank-row:last-child { border-bottom: none; }
   #flighty-root .rank-idx { width: 18px; font-size: 11px; color: var(--text-faint); font-family: 'IBM Plex Mono', monospace; flex-shrink:0; }
   #flighty-root .rank-name { flex: 1; font-size: 13px; min-width: 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #flighty-root .rank-bar-track { width: 80px; height: 5px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; flex-shrink:0; }
+  #flighty-root .rank-bar-track { width: 80px; height: 5px; background: rgba(var(--fx),.06); border-radius: 3px; overflow: hidden; flex-shrink:0; }
   #flighty-root .rank-bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--gold)); border-radius: 3px; }
   #flighty-root .rank-val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); width: 26px; text-align: right; flex-shrink:0; }
   #flighty-root .rank-val-count { width: 28px; flex-shrink:0; text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); overflow: hidden; }
@@ -291,7 +297,7 @@
   #flighty-root .pass-arrow .ln { flex:1; height:1px; background: repeating-linear-gradient(90deg, var(--text-faint) 0 4px, transparent 4px 8px); min-width: 6px;}
   #flighty-root .flight-duration { font-size: 10px; color: var(--text-faint); white-space: nowrap; flex-shrink: 0; }
   #flighty-root .pass-cities { font-size: 11.5px; color: var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #flighty-root .pass-stub { width: 82px; border-left: 1px dashed var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 10px 6px; background: rgba(255,255,255,.015); position: relative; flex-shrink:0; }
+  #flighty-root .pass-stub { width: 82px; border-left: 1px dashed var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 10px 6px; background: rgba(var(--fx),.015); position: relative; flex-shrink:0; }
   #flighty-root .pass-stub .date-d { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; color: var(--gold); line-height:1; }
   #flighty-root .pass-stub .date-m { font-size: 9.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
   #flighty-root .pass-stub .date-y { font-size: 9px; color: var(--text-faint); margin-top: 1px; }
@@ -380,6 +386,51 @@
     #flighty-root .rank-val-count { width: 22px; font-size: 11px; }
     #flighty-root .rank-val-km { width: 58px; font-size: 10.5px; }
   }
+
+  /* --- Tema chiaro --- */
+  #flighty-root[data-theme="light"] {
+    --bg: #EEF2F8; --bg-panel: #FFFFFF; --bg-panel-2: #F4F7FC;
+    --line: rgba(40,60,100,.16);
+    --gold: #B77A1B; --teal: #0E9488; --coral: #D4472B;
+    --text: #131B2E; --text-dim: #4A5878; --text-faint: #7885A3;
+    --fx: 20,30,60; --glass-rgb: 255,255,255; --glass-rgb2: 255,255,255;
+    --pop-bg: #FFFFFF; --ctl-bg: #FFFFFF;
+  }
+  #flighty-root[data-theme="light"] .bg-grid { opacity: .25; }
+  #flighty-root[data-theme="light"] .app-map-full, #flighty-root[data-theme="light"] .map-box { background: #DCE3EF; }
+  #flighty-root[data-theme="light"] .leaflet-control-attribution { background: rgba(255,255,255,.8) !important; color: #4A5878 !important; }
+  #flighty-root[data-theme="light"] .leaflet-control-attribution a { color: #2a3a60 !important; }
+  #flighty-root[data-theme="light"] .map-fab { background: rgba(255,255,255,.92); }
+  #flighty-root[data-theme="light"] .modal-overlay { background: rgba(230,236,246,.75); }
+  #flighty-root[data-theme="light"] .undo-toast { background: #fff; }
+  #flighty-root[data-theme="light"] .app-topbar.glass-panel,
+  #flighty-root[data-theme="light"] .upcoming-sheet.glass-panel { box-shadow: 0 8px 28px rgba(30,45,80,.18); }
+
+  /* --- Avatar + Impostazioni --- */
+  #flighty-root .avatar-btn { width: 34px; height: 34px; border-radius: 50%; padding: 0; border: 2px solid var(--gold); background: var(--bg-panel-2); color: var(--text); cursor: pointer; overflow: hidden; display:flex; align-items:center; justify-content:center; font-weight: 700; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform .12s; }
+  #flighty-root .avatar-btn:hover { transform: scale(1.06); }
+  #flighty-root .avatar-btn img { width: 100%; height: 100%; object-fit: cover; display:block; }
+  #flighty-root .wrap-settings { max-width: 680px; padding-bottom: 100px; }
+  #flighty-root .set-head { display:flex; align-items:center; gap: 12px; margin-bottom: 18px; }
+  #flighty-root .set-back { background: rgba(var(--fx),.08); border: 1px solid var(--line); color: var(--text); width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+  #flighty-root .set-title { font-size: 20px; font-weight: 700; }
+  #flighty-root .set-cat { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); margin: 22px 4px 8px; font-weight: 600; }
+  #flighty-root .set-card { background: rgba(var(--glass-rgb2), calc(var(--glass-op) * .75)); backdrop-filter: blur(18px) saturate(170%); -webkit-backdrop-filter: blur(18px) saturate(170%); border: 1px solid rgba(var(--fx),.12); border-radius: 16px; overflow: hidden; }
+  #flighty-root .set-row { display:flex; align-items:center; justify-content:space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid rgba(var(--fx),.08); }
+  #flighty-root .set-row:last-child { border-bottom: none; }
+  #flighty-root .set-row-col { flex-direction: column; align-items: stretch; gap: 10px; }
+  #flighty-root .set-label { font-size: 14px; font-weight: 600; }
+  #flighty-root .set-sub { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
+  #flighty-root .seg { display:inline-flex; background: rgba(var(--fx),.08); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
+  #flighty-root .seg button { background: transparent; border: none; color: var(--text-dim); padding: 6px 12px; border-radius: 8px; font-size: 12.5px; cursor: pointer; font-family: inherit; }
+  #flighty-root .seg button.active { background: var(--teal); color: #04121A; font-weight: 700; }
+  #flighty-root .slider-line { display:flex; align-items:center; gap: 12px; }
+  #flighty-root .slider-line input[type=range] { flex: 1; accent-color: var(--teal); }
+  #flighty-root .slider-val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); min-width: 40px; text-align: right; }
+  #flighty-root .set-btn { background: rgba(var(--fx),.08); border: 1px solid var(--line); color: var(--text); padding: 7px 14px; border-radius: 9px; font-size: 12.5px; cursor: pointer; font-family: inherit; }
+  #flighty-root .set-btn.danger { color: var(--coral); border-color: rgba(240,117,90,.4); }
+  #flighty-root .set-user { display:flex; align-items:center; gap: 12px; }
+  #flighty-root .set-user .avatar-btn { cursor: default; width: 44px; height: 44px; }
 </style>
 
 <script>
@@ -556,7 +607,7 @@ let aircraftSortBy = 'count'; // 'count' | 'km' — ordinamento del box "Tipolog
 let companySortBy = 'count'; // 'count' | 'km' — ordinamento del box "Compagnie"
 let yearSortBy = 'count'; // 'count' | 'km' | 'year' — ordinamento del box "Voli per anno"
 let yearSortDir = 'desc'; // 'asc' | 'desc' — direzione quando yearSortBy === 'year'
-let mapStyle = 'satellite'; // 'satellite' | 'dark'
+let mapStyle = 'satellite'; // 'satellite' | 'dark' (sovrascritto dalle impostazioni piu' sotto)
 let syncMode = 'cloud'; // 'cloud' | 'offline'
 let editingFlightId = null; // uuid of flight currently being edited, or null when adding new
 function getTodayStr() { return new Date().toISOString().slice(0,10); }
@@ -1651,7 +1702,7 @@ function renderTimeline() {
     </div>`;
 }
 
-let currentView = 'home'; // 'home' | 'flown' | 'stats'
+let currentView = 'home'; // 'home' | 'flown' | 'stats' | 'settings'
 let homeYearFilter = 'upcoming'; // 'upcoming' | 'all-flown' | anno specifico (es. '2024') — filtro nel pannello Home
 let pendingHighlightFlightId = null; // id del volo da evidenziare dopo la navigazione dalla Home
 let homeYearChipsScroll = 0; // posizione di scorrimento della riga anni, da conservare tra un render e l'altro
@@ -1662,10 +1713,97 @@ function daysUntil(dateStr) {
   return Math.round((target - now) / 86400000);
 }
 
-function renderTopBar(title) {
+
+// ---- Impostazioni app (salvate solo in localStorage del dispositivo) ----
+const SETTINGS_KEY = 'imieivoli_settings_v1';
+let appSettings = { theme: 'dark', transparency: 32, mapDefault: 'satellite' };
+try {
+  const raw = localStorage.getItem(SETTINGS_KEY);
+  if (raw) { const s = JSON.parse(raw); if (s && typeof s === 'object') appSettings = Object.assign(appSettings, s); }
+} catch (e) {}
+function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings)); } catch (e) {} }
+mapStyle = appSettings.mapDefault === 'dark' ? 'dark' : 'satellite';
+function applySettings() {
+  const r = document.getElementById('flighty-root');
+  if (r) {
+    r.setAttribute('data-theme', appSettings.theme);
+    r.style.setProperty('--glass-op', (1 - appSettings.transparency / 100).toFixed(2));
+  }
+  const light = appSettings.theme === 'light';
+  document.body.style.background = light ? '#EEF2F8' : '#070B14';
+  document.documentElement.style.background = light ? '#EEF2F8' : '#070B14';
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute('content', light ? '#EEF2F8' : '#070B14');
+}
+function getAvatarUrl() {
+  const md = (currentUser && currentUser.user_metadata) || {};
+  const url = md.avatar_url || md.picture || '';
+  try {
+    if (url) localStorage.setItem('imieivoli_avatar', url);
+    else return localStorage.getItem('imieivoli_avatar') || '';
+  } catch (e) {}
+  return url;
+}
+function renderAvatar(extraAttrs) {
+  const url = getAvatarUrl();
+  const md = (currentUser && currentUser.user_metadata) || {};
+  const name = md.full_name || md.name || (currentUser && currentUser.email) || '';
+  const inner = url ? `<img src="${url}" alt="" referrerpolicy="no-referrer" onerror="this.remove()"/>` : (name ? name.trim()[0].toUpperCase() : '👤');
+  return `<button class="avatar-btn" ${extraAttrs || ''} title="Impostazioni">${inner}</button>`;
+}
+function renderSettingsView() {
+  const md = (currentUser && currentUser.user_metadata) || {};
+  const name = md.full_name || md.name || '';
+  const seg = (key, opts) => `<div class="seg">${opts.map(o => `<button data-set="${key}" data-val="${o[0]}" class="${appSettings[key]===o[0]?'active':''}">${o[1]}</button>`).join('')}</div>`;
+  return `
+    <div class="bg-grid"></div>
+    <div class="wrap wrap-stats wrap-glass wrap-settings">
+      <div class="set-head"><button class="set-back" id="set-back" title="Indietro">‹</button><div class="set-title display">Impostazioni</div></div>
+
+      <div class="set-cat">Aspetto</div>
+      <div class="set-card">
+        <div class="set-row">
+          <div><div class="set-label">Tema</div><div class="set-sub">Sfondo nero o bianco</div></div>
+          ${seg('theme', [['dark','⚫ Nero'],['light','⚪ Bianco']])}
+        </div>
+        <div class="set-row set-row-col">
+          <div><div class="set-label">Trasparenza vetro liquido</div><div class="set-sub">Pannelli, barra in alto e menu in basso: più alta = più si vede la mappa</div></div>
+          <div class="slider-line"><input type="range" id="set-glass" min="0" max="85" step="1" value="${appSettings.transparency}"/><span class="slider-val" id="set-glass-val">${appSettings.transparency}%</span></div>
+        </div>
+      </div>
+
+      <div class="set-cat">Mappa</div>
+      <div class="set-card">
+        <div class="set-row">
+          <div><div class="set-label">Vista predefinita</div><div class="set-sub">Quella usata all'apertura dell'app</div></div>
+          ${seg('mapDefault', [['satellite','🛰️ Satellite'],['dark','🌑 Scura']])}
+        </div>
+      </div>
+
+      <div class="set-cat">Account</div>
+      <div class="set-card">
+        <div class="set-row">
+          ${currentUser ? `<div class="set-user">${renderAvatar('disabled')}<div><div class="set-label">${name || 'Account Google'}</div><div class="set-sub">${currentUser.email || ''}</div></div></div>
+          <button class="set-btn danger" id="set-logout">Esci</button>` : `<div class="set-sub">Nessun account collegato (modalità offline)</div>`}
+        </div>
+      </div>
+
+      <div class="set-cat">Dati su questo dispositivo</div>
+      <div class="set-card">
+        <div class="set-row">
+          <div><div class="set-label">Copia offline</div><div class="set-sub">Voli e mappe salvati per l'uso senza connessione</div></div>
+          <button class="set-btn" id="set-clearcache">Svuota</button>
+        </div>
+      </div>
+      <div class="footer-note">Le impostazioni sono salvate su questo dispositivo.</div>
+    </div>
+    ${renderBottomNav()}`;
+}
+
+function renderTopBar(title, withAvatar) {
   return `
     <div class="app-topbar glass-panel">
-      <div class="app-topbar-left">${title}</div>
+      <div class="app-topbar-left"><span>${title}</span>${withAvatar ? renderAvatar('id="avatar-open"') : ''}</div>
       <div class="app-topbar-right">
         <div class="app-date">${todayFormatted()}</div>
         <div class="app-sync ${syncMode==='cloud'?'sync-ok':(syncMode==='offline-cached'?'sync-cached':'sync-off')}">${syncMode==='cloud' ? '● Sincronizzato' : (syncMode==='offline-cached' ? '◐ Offline (dati salvati)' : '○ Offline (nessun dato salvato)')}</div>
@@ -1753,7 +1891,7 @@ function renderHomeView(stats, mapFlights) {
 
   return `
     <div class="app-shell">
-      ${renderTopBar('✈️ I miei voli')}
+      ${renderTopBar('✈️ I miei voli', true)}
       <div class="app-map-full">
         <div id="leaflet-map"></div>
         <div class="map-fab-stack">
@@ -1804,7 +1942,9 @@ function render() {
   const mapFlights = currentView === 'home' ? getHomeListFlights() : filteredForStats;
   if (currentView === 'home') root.innerHTML = renderHomeView(stats, mapFlights);
   else if (currentView === 'flown') root.innerHTML = renderFlownView(stats);
+  else if (currentView === 'settings') root.innerHTML = renderSettingsView();
   else root.innerHTML = renderStatsView(stats);
+  applySettings();
   document.documentElement.style.overflow = currentView === 'home' ? 'hidden' : '';
   document.body.style.overflow = currentView === 'home' ? 'hidden' : '';
   if (syncMode === 'cloud') saveFlightsToLocalCache();
@@ -1831,6 +1971,35 @@ function tryAutoFillKm() {
 }
 
 function bindEvents(mapFlights) {
+  const avatarOpen = root.querySelector('#avatar-open');
+  if (avatarOpen) avatarOpen.addEventListener('click', () => { currentView = 'settings'; render(); });
+  if (currentView === 'settings') {
+    const back = root.querySelector('#set-back');
+    if (back) back.addEventListener('click', () => { currentView = 'home'; render(); });
+    root.querySelectorAll('.seg button[data-set]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-set'), val = btn.getAttribute('data-val');
+        appSettings[key] = val; saveSettings();
+        if (key === 'mapDefault') mapStyle = val;
+        render();
+      });
+    });
+    const sl = root.querySelector('#set-glass');
+    if (sl) sl.addEventListener('input', () => {
+      appSettings.transparency = parseInt(sl.value, 10);
+      root.querySelector('#set-glass-val').textContent = sl.value + '%';
+      applySettings();
+    });
+    if (sl) sl.addEventListener('change', saveSettings);
+    const lo = root.querySelector('#set-logout');
+    if (lo) lo.addEventListener('click', logout);
+    const cc = root.querySelector('#set-clearcache');
+    if (cc) cc.addEventListener('click', async () => {
+      try { localStorage.removeItem(LOCAL_CACHE_KEY); } catch (e) {}
+      try { if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.filter(k => k.indexOf('tiles') >= 0).map(k => caches.delete(k))); } } catch (e) {}
+      cc.textContent = 'Fatto ✓';
+    });
+  }
   const logoutLink = root.querySelector('#logout-link');
   if (logoutLink) logoutLink.addEventListener('click', logout);
 
