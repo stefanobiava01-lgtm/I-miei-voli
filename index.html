@@ -640,7 +640,58 @@ try {
   const raw = localStorage.getItem(SETTINGS_KEY);
   if (raw) { const s = JSON.parse(raw); if (s && typeof s === 'object') appSettings = Object.assign(appSettings, s); }
 } catch (e) {}
-function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings)); } catch (e) {} }
+// Impostazioni "dello schermo": restano separate per ogni dispositivo. Tutte le altre seguono l'account.
+const DEVICE_ONLY_SETTINGS = ['theme', 'uiSize', 'transparency', 'blur'];
+const SETTINGS_PENDING_KEY = 'imieivoli_settings_pending';
+let settingsPushTimer = null;
+let settingsPulledFor = null;
+function syncedSettingsPayload() {
+  const o = {};
+  Object.keys(appSettings).forEach(k => { if (!DEVICE_ONLY_SETTINGS.includes(k)) o[k] = appSettings[k]; });
+  return o;
+}
+async function pushSettingsToCloud() {
+  if (typeof supabaseClient === 'undefined' || !supabaseClient || !currentUser) return;
+  try {
+    const { error } = await supabaseClient.from('user_settings').upsert({ user_id: currentUser.id, settings: syncedSettingsPayload(), updated_at: new Date().toISOString() });
+    if (error) throw error;
+    try { localStorage.removeItem(SETTINGS_PENDING_KEY); } catch (e) {}
+  } catch (e) {
+    console.error('Sincronizzazione impostazioni non riuscita', e);
+    try { localStorage.setItem(SETTINGS_PENDING_KEY, '1'); } catch (e2) {}
+  }
+}
+async function pullSettingsFromCloud() {
+  if (typeof supabaseClient === 'undefined' || !supabaseClient || !currentUser) return;
+  if (settingsPulledFor === currentUser.id) return;
+  settingsPulledFor = currentUser.id;
+  try {
+    let pending = false;
+    try { pending = !!localStorage.getItem(SETTINGS_PENDING_KEY); } catch (e) {}
+    if (pending) { await pushSettingsToCloud(); return; } // modifiche locali non ancora salvate: hanno la precedenza
+    const { data, error } = await supabaseClient.from('user_settings').select('settings').eq('user_id', currentUser.id).maybeSingle();
+    if (error) throw error;
+    if (!data || !data.settings) { await pushSettingsToCloud(); return; } // primo dispositivo: salva le impostazioni attuali
+    let changed = false;
+    Object.keys(data.settings).forEach(k => {
+      if (DEVICE_ONLY_SETTINGS.includes(k) || !(k in DEFAULT_SETTINGS)) return;
+      if (appSettings[k] !== data.settings[k]) { appSettings[k] = data.settings[k]; changed = true; }
+    });
+    if (changed) {
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings)); } catch (e) {}
+      mapStyle = appSettings.mapDefault === 'dark' ? 'dark' : 'satellite';
+      if (currentView !== 'settings') render();
+    }
+  } catch (e) {
+    console.error('Lettura impostazioni dal cloud non riuscita (tabella user_settings creata?)', e);
+  }
+}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings)); } catch (e) {}
+  try { localStorage.setItem(SETTINGS_PENDING_KEY, '1'); } catch (e) {}
+  clearTimeout(settingsPushTimer);
+  settingsPushTimer = setTimeout(pushSettingsToCloud, 800);
+}
 const ACCENTS = {
   teal:   { label: 'Verde acqua', dark: '#4FD8C9', light: '#0E9488' },
   gold:   { label: 'Oro',         dark: '#E8B463', light: '#B77A1B' },
@@ -788,6 +839,7 @@ async function initAuth() {
   if (session) {
     currentUser = session.user;
     loadFlights();
+    pullSettingsFromCloud();
   } else {
     renderLoginScreen();
   }
@@ -795,8 +847,10 @@ async function initAuth() {
     if (event === 'SIGNED_IN' && newSession) {
       currentUser = newSession.user;
       loadFlights();
+      pullSettingsFromCloud();
     } else if (event === 'SIGNED_OUT') {
       currentUser = null;
+      settingsPulledFor = null;
       renderLoginScreen();
     }
   });
@@ -2000,7 +2054,7 @@ function renderSettingsView() {
         ${row('I miei voli', 'Versione ' + APP_VERSION + ' · ' + flights.length + ' voli registrati', '')}
         <div class="set-row"><div class="set-sub" style="line-height:1.6">Dati aeroporti e compagnie: OpenFlights · Mappe: Esri e Leaflet · Loghi: Kiwi.com · Bandiere: flagcdn · Excel: SheetJS · Accesso e dati: Supabase · CO₂: stima indicativa per passeggero.</div></div>
       </div>
-      <div class="footer-note">Le impostazioni sono salvate su questo dispositivo.</div>
+      <div class="footer-note">Le impostazioni sono sincronizzate con il tuo account, tranne tema, dimensione del testo, trasparenza e sfocatura, che restano separati per ogni dispositivo.</div>
     </div>
     ${renderBottomNav()}`;
 }
