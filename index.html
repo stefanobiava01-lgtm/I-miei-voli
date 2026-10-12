@@ -245,7 +245,7 @@
   #flighty-root .pass-list::-webkit-scrollbar { width: 6px; }
   #flighty-root .pass-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 
-  #flighty-root .modal-overlay { position: absolute; inset: 0; background: rgba(3,6,12,.72); display:flex; align-items:center; justify-content:center; z-index: 1000; border-radius: 14px; }
+  #flighty-root .modal-overlay { position: fixed; inset: 0; background: rgba(3,6,12,.72); display:flex; align-items:center; justify-content:center; z-index: 1000; border-radius: 14px; }
   #flighty-root .panel-highlight { font-size: 11.5px; color: var(--text-dim); margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
   #flighty-root .panel-highlight b { color: var(--gold); }
   #flighty-root .yoy-up { color: var(--coral); }
@@ -1678,8 +1678,73 @@ function companyDatalistOptions() {
   const companies = [...new Set(flights.map(f=>f.company).filter(Boolean))].sort();
   return companies.map(c => `<option value="${c.replace(/"/g,'&quot;')}"></option>`).join('');
 }
+// --- Nomi corretti degli aerei ---
+// Riconosce le varianti scritte a mano (B737 Max 8-200, A320Neo, BCS3, codici IATA...) e le porta al nome ufficiale.
+function normalizeAircraft(raw) {
+  const original = String(raw || '').trim();
+  if (!original) return { name: '', known: false };
+  let c = original.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  c = c.replace(/^(BOEING|AIRBUS|MCDONNELLDOUGLAS|DOUGLAS|BOMBARDIER|EMBRAER|DEHAVILLAND|DEHAVILLANDCANADA)/, '');
+  let m;
+  const ret = (name) => ({ name, known: true });
+
+  // Boeing 737 MAX / 737-8200 (variante Ryanair)
+  if (/(7378200|737MAX8200|MAX8200|^B?8200$)/.test(c)) return ret('Boeing 737-8200');
+  if ((m = c.match(/(?:737)?MAX(10|7|8|9)/))) return ret('Boeing 737 MAX ' + m[1]);
+  if ((m = c.match(/^7M(7|8|9)$/))) return ret('Boeing 737 MAX ' + m[1]);
+  if (/^B?7378$|^B?7M8$/.test(c)) return ret('Boeing 737 MAX 8');
+  // Boeing 737 Next Generation / Classic
+  if ((m = c.match(/^B?737(600|700|800|900)(ER|W)?$/))) return ret('Boeing 737-' + m[1] + (m[2] === 'ER' ? 'ER' : ''));
+  if ((m = c.match(/^B?737(300|400|500)$/))) return ret('Boeing 737-' + m[1]);
+  if (/^B?738$|^B?73H$/.test(c)) return ret('Boeing 737-800');
+  if (/^B?739$/.test(c)) return ret('Boeing 737-900');
+  if (/^B?73G$/.test(c)) return ret('Boeing 737-700');
+  // Altri Boeing
+  if ((m = c.match(/^B?777(200|300)(ER|LR)?$/))) return ret('Boeing 777-' + m[1] + (m[2] || ''));
+  if (/^B?77W$/.test(c)) return ret('Boeing 777-300ER');
+  if (/^B?772$/.test(c)) return ret('Boeing 777-200');
+  if (/^B?773$/.test(c)) return ret('Boeing 777-300');
+  if ((m = c.match(/^B?787(8|9|10)$/))) return ret('Boeing 787-' + m[1]);
+  if (/^B?788$/.test(c)) return ret('Boeing 787-8');
+  if (/^B?789$/.test(c)) return ret('Boeing 787-9');
+  if (/^B?78X$/.test(c)) return ret('Boeing 787-10');
+  if ((m = c.match(/^B?747(400|8)$/))) return ret('Boeing 747-' + m[1]);
+  if ((m = c.match(/^B?767(200|300|400)(ER)?$/))) return ret('Boeing 767-' + m[1] + (m[2] || ''));
+  if ((m = c.match(/^B?757(200|300)$/))) return ret('Boeing 757-' + m[1]);
+  // Airbus A220 (ex Bombardier CSeries)
+  if ((m = c.match(/^A?220(100|300)$/))) return ret('Airbus A220-' + m[1]);
+  if (/^BCS1$|^A?221$/.test(c)) return ret('Airbus A220-100');
+  if (/^BCS3$|^A?223$/.test(c)) return ret('Airbus A220-300');
+  // Airbus famiglia A320
+  if ((m = c.match(/^A?(319|320|321)(NEO|N)$/))) return ret('Airbus A' + m[1] + 'neo');
+  if (/^A?321(XLR|LR)$/.test(c)) return ret('Airbus A321' + (c.endsWith('XLR') ? 'XLR' : 'LR'));
+  if ((m = c.match(/^A?(318|319|320|321)(100|200)?$/))) return ret('Airbus A' + m[1]);
+  if (/^32N$/.test(c)) return ret('Airbus A320neo');
+  if (/^32Q$/.test(c)) return ret('Airbus A321neo');
+  if (/^31N$/.test(c)) return ret('Airbus A319neo');
+  if (/^(319|320|321)$/.test(c)) return ret('Airbus A' + c);
+  // Airbus widebody
+  if ((m = c.match(/^A?330(200|300|800|900)(NEO)?$/))) return ret('Airbus A330-' + m[1]);
+  if (/^A?33(8|9)NEO$/.test(c)) return ret('Airbus A330-' + (c.includes('338') ? '800' : '900'));
+  if (/^A?330$/.test(c)) return ret('Airbus A330');
+  if ((m = c.match(/^A?340(300|500|600)$/))) return ret('Airbus A340-' + m[1]);
+  if ((m = c.match(/^A?350(900|1000)$/))) return ret('Airbus A350-' + m[1]);
+  if (/^A?359$/.test(c)) return ret('Airbus A350-900');
+  if (/^A?380(800)?$|^388$/.test(c)) return ret('Airbus A380-800');
+  // McDonnell Douglas
+  if ((m = c.match(/^(?:MD|MDD)?(80|81|82|83|87|88|90)$/)) && /MD/.test(original.toUpperCase().replace(/[^A-Z0-9]/g, ''))) return ret('McDonnell Douglas MD-' + m[1]);
+  // Regionali
+  if ((m = c.match(/^ATR(42|72)(\d{3})?$/))) return ret('ATR ' + m[1] + (m[2] ? '-' + m[2] : ''));
+  if ((m = c.match(/^E(170|175|190|195)(E2)?$/))) return ret('Embraer E' + m[1] + (m[2] ? '-E2' : ''));
+  if ((m = c.match(/^EMB?(170|175|190|195)$/))) return ret('Embraer E' + m[1]);
+  if ((m = c.match(/^CRJ-?(200|700|900|1000)$/))) return ret('Bombardier CRJ-' + m[1]);
+  if (/^(DH8D|Q400|DASH8Q?400|DASH8)$/.test(c)) return ret('De Havilland Dash 8-400');
+  return { name: original, known: false };
+}
+const COMMON_AIRCRAFT = ['Airbus A220-300','Airbus A319','Airbus A320','Airbus A320neo','Airbus A321','Airbus A321neo','Airbus A330-300','Airbus A350-900','Boeing 737-700','Boeing 737-800','Boeing 737-900','Boeing 737-8200','Boeing 737 MAX 8','Boeing 747-400','Boeing 757-200','Boeing 767-300','Boeing 777-300','Boeing 777-300ER','Boeing 787-8','Boeing 787-9','McDonnell Douglas MD-82','ATR 72-600','Embraer E190'];
+
 function aircraftDatalistOptions() {
-  const models = [...new Set(flights.map(f=>f.aircraft).filter(Boolean))].sort();
+  const models = [...new Set(flights.map(f=>f.aircraft).filter(Boolean).concat(COMMON_AIRCRAFT))].sort();
   return models.map(a => `<option value="${a.replace(/"/g,'&quot;')}"></option>`).join('');
 }
 
@@ -1813,7 +1878,7 @@ async function handleImportFile(e) {
       fromCity: (pickField(norm, 'città partenza', 'citta partenza', 'fromcity') || '').toString().trim() || null,
       to: String(to).trim().toUpperCase(),
       toCity: (pickField(norm, 'città arrivo', 'citta arrivo', 'tocity') || '').toString().trim() || null,
-      aircraft: (pickField(norm, 'aereo', 'aircraft') || '').toString().trim() || null,
+      aircraft: normalizeAircraft((pickField(norm, 'aereo', 'aircraft') || '').toString()).name || null,
       tail: (pickField(norm, 'tail number', 'tail') || '').toString().trim() || null,
       seat: (pickField(norm, 'posto', 'seat') || '').toString().trim() || null,
       flightNumber: (pickField(norm, 'numero volo', 'numero di volo', 'volo', 'flight number', 'flight') || '').toString().trim() || null,
@@ -1950,7 +2015,7 @@ function renderTimeline() {
           <div class="field"><label>Città partenza</label><input type="text" id="f-fromcity" placeholder="es. Bergamo"/></div>
           <div class="field"><label>A (IATA)</label><input type="text" id="f-to" placeholder="es. VLC" maxlength="4" style="text-transform:uppercase" list="airport-options"/></div>
           <div class="field"><label>Città arrivo</label><input type="text" id="f-tocity" placeholder="es. Valencia"/></div>
-          <div class="field"><label>Aereo</label><input type="text" id="f-aircraft" placeholder="es. B737-800" list="aircraft-options"/></div>
+          <div class="field"><label>Aereo</label><input type="text" id="f-aircraft" placeholder="es. Boeing 737-800" list="aircraft-options"/></div>
           <div class="field"><label>Tail number</label><input type="text" id="f-tail" placeholder="es. I-NEOU" style="text-transform:uppercase"/></div>
           <div class="field"><label>Posto</label><input type="text" id="f-seat" placeholder="es. 12A" style="text-transform:uppercase"/></div>
           <div class="field"><label>Distanza (km, auto)</label><input type="number" id="f-km" placeholder="calcolata da Da/A"/></div>
@@ -2058,6 +2123,50 @@ async function downloadOfflineTiles() {
   updateTilesCount();
 }
 
+
+async function fixAircraftNames() {
+  const groups = {};
+  flights.forEach(f => {
+    if (!f.aircraft) return;
+    const r = normalizeAircraft(f.aircraft);
+    const g = groups[f.aircraft] || (groups[f.aircraft] = { from: f.aircraft, to: r.name, known: r.known, ids: [] });
+    g.ids.push(f);
+  });
+  const all = Object.values(groups);
+  const changes = all.filter(g => g.known && g.to !== g.from);
+  const unknown = all.filter(g => !g.known);
+  const okCount = all.filter(g => g.known && g.to === g.from).length;
+  if (!changes.length) {
+    await showInfoModal('Nomi degli aerei', `<div style="text-align:center;padding:8px 0;">Tutti i nomi riconosciuti sono già corretti${okCount ? ` (${okCount} modelli)` : ''}.${unknown.length ? `<div style="font-size:12px;margin-top:10px;color:var(--text-dim)">Non riconosciuti, lasciati come sono: ${unknown.map(u => u.from).join(', ')}</div>` : ''}</div>`);
+    return;
+  }
+  const rows = changes.map(g => `<div class="tail-flight-row" style="gap:8px;"><span style="color:var(--text-dim);text-decoration:line-through;">${g.from}</span><span>→</span><span style="color:var(--teal);font-weight:600;">${g.to}</span><span style="margin-left:auto;color:var(--text-faint);font-size:11px;">${g.ids.length} vol${g.ids.length === 1 ? 'o' : 'i'}</span></div>`).join('');
+  const unkNote = unknown.length ? `<div style="font-size:11px;color:var(--text-faint);margin-top:10px;">Non riconosciuti, restano come sono: ${unknown.map(u => u.from).join(', ')}</div>` : '';
+  const total = changes.reduce((s, g) => s + g.ids.length, 0);
+  const ok = await showConfirmModal(`Correggere ${changes.length} nom${changes.length === 1 ? 'e' : 'i'} (${total} voli)?`, `<div class="tail-flight-list">${rows}</div>${unkNote}`, 'Correggi');
+  if (!ok) return;
+  try {
+    for (const g of changes) {
+      for (const f of g.ids) {
+        if (supabaseClient) {
+          const updated = await updateFlightRemote(f.id, { ...f, aircraft: g.to });
+          const idx = flights.findIndex(x => x.id === f.id);
+          if (idx >= 0) flights[idx] = updated;
+        } else {
+          f.aircraft = g.to;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Errore correzione nomi aerei', err);
+    await showInfoModal('Errore', '<div style="text-align:center;padding:8px 0;color:var(--coral)">Correzione interrotta — controlla la connessione e riprova (quelli già corretti restano salvati).</div>');
+    render();
+    return;
+  }
+  render();
+  await showInfoModal('Fatto', `<div style="text-align:center;padding:8px 0;">${total} voli aggiornati.</div>`);
+}
+
 function renderSettingsView() {
   const md = (currentUser && currentUser.user_metadata) || {};
   const name = md.full_name || md.name || '';
@@ -2125,6 +2234,7 @@ function renderSettingsView() {
         ${row('Excel', 'Esporta tutti i voli o importa un file con più voli', `<div class="set-btns"><button class="set-btn" id="export-backup">⬇ Esporta</button><button class="set-btn" id="import-data">⬆ Importa</button></div>`)}
         ${row('Backup file (.json)', 'Copia completa da conservare e ripristinare', `<div class="set-btns"><button class="set-btn" id="export-json">⬇ Backup</button><button class="set-btn" id="import-json">⬆ Ripristina</button></div>`)}
         <input type="file" id="import-file-input" accept=".xlsx,.xls,.json" style="display:none"/>
+        ${row('Nomi degli aerei', 'Uniforma i nomi al formato ufficiale (es. B737 Max 8-200 → Boeing 737-8200)', `<button class="set-btn" id="fix-aircraft">Controlla</button>`)}
         ${row('Sincronizzazione', `Ultima volta: ${lastSync}`, `<button class="set-btn" id="set-sync">Sincronizza ora</button>`)}
         ${row('Copia offline', 'Voli e mappe salvati su questo dispositivo', `<button class="set-btn" id="set-clearcache">Svuota</button>`)}
       </div>
@@ -2365,6 +2475,8 @@ function bindEvents(mapFlights) {
       cc.textContent = 'Fatto ✓';
       updateTilesCount();
     });
+    const fa = root.querySelector('#fix-aircraft');
+    if (fa) fa.addEventListener('click', fixAircraftNames);
     const td = root.querySelector('#tiles-download');
     if (td) td.addEventListener('click', downloadOfflineTiles);
     updateTilesCount();
@@ -2455,6 +2567,11 @@ function bindEvents(mapFlights) {
   const importInput = root.querySelector('#import-file-input');
   if (importBtn) importBtn.addEventListener('click', triggerImportFile);
   if (importInput) importInput.addEventListener('change', handleImportFile);
+  const acInput = root.querySelector('#f-aircraft');
+  if (acInput) acInput.addEventListener('change', () => {
+    const r = normalizeAircraft(acInput.value);
+    if (r.known) acInput.value = r.name;
+  });
   root.querySelectorAll('.trip-opt').forEach(b => b.addEventListener('click', () => setTripToggle(b.getAttribute('data-trip') === 'work')));
   const addForm = root.querySelector('#add-form');
   if (toggleBtn) {
@@ -2521,7 +2638,7 @@ function bindEvents(mapFlights) {
       const fromCity = root.querySelector('#f-fromcity').value.trim();
       const to = root.querySelector('#f-to').value.trim().toUpperCase();
       const toCity = root.querySelector('#f-tocity').value.trim();
-      const aircraft = root.querySelector('#f-aircraft').value.trim();
+      const aircraft = normalizeAircraft(root.querySelector('#f-aircraft').value).name;
       const tail = root.querySelector('#f-tail').value.trim();
       const seat = root.querySelector('#f-seat').value.trim();
       const kmVal = root.querySelector('#f-km').value;
