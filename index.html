@@ -765,12 +765,14 @@ function fmtHoursStat(hours) {
   return `${fmtNum(hours)} <span class="stat-value-sub">(${fmtNum(hours / 24, 1)} gg)</span>`;
 }
 const WORK_TAG_RE = /\s*X\s*LAVORO\s*/gi;
-function isWorkFlight(f) { return /X\s*LAVORO/i.test(f.note || ''); }
+function isWorkFlight(f) { return f.trip ? f.trip === 'work' : /X\s*LAVORO/i.test(f.note || ''); }
 function noteWithoutWork(note) { return (note || '').replace(WORK_TAG_RE, ' ').replace(/^[\s·\-–,;]+|[\s·\-–,;]+$/g, '').trim(); }
-function buildNote(isWork, rest) {
-  rest = noteWithoutWork(rest);
-  if (isWork) return rest ? 'X LAVORO · ' + rest : 'X LAVORO';
-  return rest;
+function parseTripValue(v) {
+  const s = String(v || '').trim().toLowerCase();
+  if (!s) return null;
+  if (s.startsWith('lav') || s === 'work') return 'work';
+  if (s.startsWith('vac') || s === 'leisure') return 'leisure';
+  return null;
 }
 function tripIconSvg(work, size) {
   size = size || 14;
@@ -804,7 +806,8 @@ function rowToFlight(row) {
     to: row.to_code, toCity: row.to_city,
     aircraft: row.aircraft, tail: row.tail, seat: row.seat,
     flightNumber: row.flight_number,
-    km: row.km, price: row.price, note: row.note, extra: row.extra
+    km: row.km, price: row.price, note: row.note, extra: row.extra,
+    trip: row.trip || null
   };
 }
 
@@ -815,7 +818,8 @@ function flightToRow(f) {
     to_code: f.to, to_city: f.toCity,
     aircraft: f.aircraft, tail: f.tail || null, seat: f.seat || null,
     flight_number: f.flightNumber || null,
-    km: f.km, price: f.price, note: f.note, extra: f.extra
+    km: f.km, price: f.price, note: f.note, extra: f.extra,
+    trip: f.trip || null
   };
 }
 
@@ -1649,7 +1653,8 @@ function flightsToExportRows() {
     'Posto': f.seat || '',
     'Km': f.km || '',
     'Prezzo (€)': f.price || '',
-    'Note': f.note || ''
+    'Tipo viaggio': isWorkFlight(f) ? 'Lavoro' : 'Vacanza',
+    'Note': noteWithoutWork(f.note)
   }));
 }
 function exportBackupJson() {
@@ -1744,7 +1749,7 @@ async function handleImportFile(e) {
   const unchanged = [];
   const invalid = [];
 
-  const FIELDS = ['fromCity','toCity','aircraft','tail','seat','flightNumber','km','price','note'];
+  const FIELDS = ['fromCity','toCity','aircraft','tail','seat','flightNumber','km','price','note','trip'];
 
   rawRows.forEach((row, i) => {
     const norm = normalizeRowKeys(row);
@@ -1770,7 +1775,8 @@ async function handleImportFile(e) {
       flightNumber: (pickField(norm, 'numero volo', 'numero di volo', 'volo', 'flight number', 'flight') || '').toString().trim() || null,
       km: parseNumField(pickField(norm, 'km')),
       price: parseNumField(pickField(norm, 'prezzo (€)', 'prezzo', 'price')),
-      note: (pickField(norm, 'note') || '').toString().trim() || null,
+      note: noteWithoutWork((pickField(norm, 'note') || '').toString()) || null,
+      trip: parseTripValue(pickField(norm, 'tipo viaggio', 'tipo', 'trip')) || (/X\s*LAVORO/i.test((pickField(norm, 'note') || '').toString()) ? 'work' : null),
       extra: null
     };
 
@@ -2465,7 +2471,7 @@ function bindEvents(mapFlights) {
       const rawNote = root.querySelector('#f-note').value.trim();
       const tripEl = root.querySelector('#f-trip');
       const isWorkTrip = (tripEl && tripEl.getAttribute('data-trip') === 'work') || /X\s*LAVORO/i.test(rawNote);
-      const note = buildNote(isWorkTrip, rawNote);
+      const note = noteWithoutWork(rawNote);
       const msg = root.querySelector('#form-msg');
 
       if (!date || !company || !from || !to) {
@@ -2498,7 +2504,8 @@ function bindEvents(mapFlights) {
         aircraft: aircraft || null, tail: tail || null, seat: seat || null, flightNumber: flightNumber || null,
         km: kmVal ? parseFloat(kmVal) : null,
         price: priceVal ? parseFloat(priceVal) : null,
-        note: note || null, extra: existingExtra ?? null
+        note: note || null, extra: existingExtra ?? null,
+        trip: isWorkTrip ? 'work' : 'leisure'
       };
 
       if (editingFlightId) {
