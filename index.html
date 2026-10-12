@@ -459,6 +459,17 @@
   #flighty-root .trip-opt.active[data-trip="leisure"] { background: rgba(232,180,99,.18); border-color: var(--gold); color: var(--gold); font-weight: 600; }
   #flighty-root .trip-opt.active[data-trip="work"] { background: rgba(240,117,90,.18); border-color: var(--coral); color: var(--coral); font-weight: 600; }
   #flighty-root .pass-top-right { display:flex; align-items:center; gap: 8px; flex-shrink: 0; }
+
+  #flighty-root .search-row { position: relative; margin-bottom: 10px; }
+  #flighty-root .search-row .search-ico { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--text-dim); pointer-events: none; }
+  #flighty-root .search-field { width: 100%; background: var(--bg-panel-2); border: 1px solid var(--line); color: var(--text); padding: 11px 14px 11px 38px; border-radius: 12px; font-size: 14px; font-family: inherit; -webkit-appearance: none; appearance: none; }
+  #flighty-root .search-field:focus { outline: none; border-color: var(--teal); }
+  #flighty-root .search-field::placeholder { color: var(--text-faint); }
+  #flighty-root .chip-leisure { display:inline-flex; align-items:center; justify-content:center; padding-left: 12px; padding-right: 12px; border-color: rgba(232,180,99,.4); color: var(--gold); }
+  #flighty-root .chip-leisure:hover { border-color: var(--gold); }
+  #flighty-root .chip-leisure.active { background: var(--gold); border-color: var(--gold); color: #2a1a05; font-weight: 600; }
+  #flighty-root .sort-row { display:flex; align-items:center; gap: 10px; margin: 0 0 14px; font-size: 12px; color: var(--text-dim); }
+  @media (max-width: 860px) { #flighty-root .search-field, #flighty-root .sort-row .set-select { font-size: 16px; } }
 </style>
 
 <script>
@@ -643,7 +654,7 @@ const DEFAULT_SETTINGS = {
   theme: 'dark', accent: 'teal', transparency: 32, blur: 24, uiSize: 'normal',
   mapDefault: 'satellite', mapLabels: 'on', routeColor: 'green', routeWidth: 'normal',
   distUnit: 'km', currency: '€', dateFmt: 'it', hoursFmt: 'both',
-  startView: 'home', startYear: 'auto', includeWork: 'yes', co2Method: 'bands'
+  startView: 'home', startYear: 'auto', flightSort: 'date-desc', includeWork: 'yes', co2Method: 'bands'
 };
 let appSettings = Object.assign({}, DEFAULT_SETTINGS);
 try {
@@ -1421,6 +1432,8 @@ function applyQuickFilters(list) {
       out = out.filter(f => f.date.slice(0,4) === String(now.getFullYear()));
     } else if (currentFilter === 'work') {
       out = out.filter(isWorkFlight);
+    } else if (currentFilter === 'leisure') {
+      out = out.filter(f => !isWorkFlight(f));
     } else if (currentFilter === 'flown') {
       out = out.filter(isFlown);
     } else if (currentFilter === 'notflown') {
@@ -1436,7 +1449,10 @@ function applyQuickFilters(list) {
       f.company.toLowerCase().includes(t) ||
       f.from.toLowerCase().includes(t) || f.to.toLowerCase().includes(t) ||
       (f.fromCity||'').toLowerCase().includes(t) || (f.toCity||'').toLowerCase().includes(t) ||
-      (f.aircraft||'').toLowerCase().includes(t)
+      (f.aircraft||'').toLowerCase().includes(t) ||
+      (f.tail||'').toLowerCase().includes(t) || (f.flightNumber||'').toLowerCase().includes(t) ||
+      (f.seat||'').toLowerCase().includes(t) || noteWithoutWork(f.note).toLowerCase().includes(t) ||
+      (isWorkFlight(f) ? 'lavoro' : 'vacanza').includes(t)
     );
   }
   return out;
@@ -1546,8 +1562,31 @@ function renderRankPanels() {
     </div>`;
 }
 
+const FLIGHT_SORTS = [
+  ['date-desc', 'Data · più recenti'],
+  ['date-asc', 'Data · più vecchi'],
+  ['km-desc', 'Distanza · più lunghi'],
+  ['km-asc', 'Distanza · più corti'],
+  ['price-desc', 'Prezzo · più alti'],
+  ['price-asc', 'Prezzo · più bassi']
+];
 function getFilteredFlights() {
-  return applyGlobalFilters(getBaseFlights(), null).slice().sort((a, b) => {
+  const list = applyGlobalFilters(getBaseFlights(), null).slice();
+  const mode = appSettings.flightSort || 'date-desc';
+  const byValue = (key, dir) => (a, b) => {
+    const av = a[key], bv = b[key];
+    const aMiss = !av, bMiss = !bv;
+    if (aMiss && bMiss) return b.date.localeCompare(a.date);
+    if (aMiss) return 1;   // i voli senza dato vanno sempre in fondo
+    if (bMiss) return -1;
+    return (dir === 'asc' ? av - bv : bv - av) || b.date.localeCompare(a.date);
+  };
+  if (mode === 'km-desc') return list.sort(byValue('km', 'desc'));
+  if (mode === 'km-asc') return list.sort(byValue('km', 'asc'));
+  if (mode === 'price-desc') return list.sort(byValue('price', 'desc'));
+  if (mode === 'price-asc') return list.sort(byValue('price', 'asc'));
+  if (mode === 'date-asc') return list.sort((a, b) => a.date.localeCompare(b.date));
+  return list.sort((a, b) => {
     const aFuture = isFuture(a), bFuture = isFuture(b);
     if (aFuture && bFuture) return a.date.localeCompare(b.date);   // futuri: dal più vicino al più lontano
     if (!aFuture && !bFuture) return b.date.localeCompare(a.date); // passati: dal più recente al più vecchio
@@ -1884,14 +1923,22 @@ function renderTimeline() {
           <button class="add-btn" id="toggle-add">+ Aggiungi volo</button>
         </div>
       </div>
+      <div class="search-row">
+        <svg class="search-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input class="search-field" id="search-box" type="search" placeholder="Cerca rotta, compagnia, aereo…" value="${searchTerm.replace(/"/g,'&quot;')}"/>
+      </div>
       <div class="timeline-controls">
         <div class="chip ${currentFilter==='all'?'active':''}" data-filter="all">Tutti</div>
+        <div class="chip chip-leisure ${currentFilter==='leisure'?'active':''}" data-filter="leisure" title="Solo voli di vacanza" aria-label="Voli di vacanza">${tripIconSvg(false, 16)}</div>
+        <div class="chip chip-work ${currentFilter==='work'?'active':''}" data-filter="work" title="Solo voli di lavoro" aria-label="Voli di lavoro">${tripIconSvg(true, 16)}</div>
         <div class="chip ${currentFilter==='thisyear'?'active':''}" data-filter="thisyear">Quest'anno</div>
         <div class="chip ${currentFilter==='1y'?'active':''}" data-filter="1y">Ultimo anno</div>
         <div class="chip ${currentFilter==='flown'?'active':''}" data-filter="flown">Volati</div>
         <div class="chip ${currentFilter==='notflown'?'active':''}" data-filter="notflown">In programma</div>
-        <div class="chip chip-work ${currentFilter==='work'?'active':''}" data-filter="work" title="Solo voli di lavoro" aria-label="Voli di lavoro">${tripIconSvg(true, 16)}</div>
-        <input class="search-input" id="search-box" placeholder="Cerca..." value="${searchTerm}"/>
+      </div>
+      <div class="sort-row">
+        <label for="sort-select">Ordina per</label>
+        <select class="set-select" id="sort-select">${FLIGHT_SORTS.map(s => `<option value="${s[0]}" ${(appSettings.flightSort||'date-desc')===s[0]?'selected':''}>${s[1]}</option>`).join('')}</select>
       </div>
       <div class="add-form" id="add-form">
         <div class="form-title" id="form-title">Nuovo volo</div>
@@ -2375,6 +2422,12 @@ function bindEvents(mapFlights) {
   // map style toggle
   root.querySelectorAll('.map-fab').forEach(btn => {
     btn.addEventListener('click', () => switchMapStyle(btn.getAttribute('data-style')));
+  });
+
+  const sortSel = root.querySelector('#sort-select');
+  if (sortSel) sortSel.addEventListener('change', () => {
+    appSettings.flightSort = sortSel.value; saveSettings();
+    const y = window.scrollY; render(); window.scrollTo(0, y);
   });
 
   // search
