@@ -259,9 +259,9 @@
   #flighty-root .modal-actions { display:flex; gap: 10px; justify-content:center; }
   #flighty-root .btn-danger { background: var(--coral); color: #2a0f08; border:none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor:pointer; }
 
-  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: 208px; transition: border-color .15s; }
+  #flighty-root .pass { display: grid; grid-template-columns: 1fr auto; background: var(--bg-panel-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; height: auto; min-height: 172px; transition: border-color .15s; }
   #flighty-root .pass:hover { border-color: rgba(79,216,201,.35); }
-  #flighty-root .pass-main { padding: 12px 40px 12px 14px; display: flex; flex-direction: column; gap: 5px; min-width: 0; overflow: hidden; }
+  #flighty-root .pass-main { padding: 12px 14px 12px 14px; display: flex; flex-direction: column; gap: 5px; min-width: 0; overflow: hidden; }
   #flighty-root .pass-line-airline { display:flex; align-items:center; font-size: 12.5px; }
   #flighty-root .pass-line-fixed { display:flex; gap: 8px 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; align-items: center; }
   #flighty-root .pass-line-fixed b { color: var(--text); font-weight: 500; }
@@ -369,10 +369,10 @@
     #flighty-root .form-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     #flighty-root .field input, #flighty-root .field select { padding: 11px 10px; font-size: 14px; }
     #flighty-root .pass-list { grid-template-columns: 1fr; }
-    #flighty-root .pass { height: auto; min-height: 190px; }
+    #flighty-root .pass { height: auto; min-height: 0; }
     #flighty-root .pass-del { top: 8px; right: 8px; font-size: 16px; padding: 6px 8px; }
     #flighty-root .pass-edit { top: 8px; right: 38px; font-size: 15px; padding: 6px 8px; }
-    #flighty-root .pass-main { padding: 14px 68px 14px 14px; }
+    #flighty-root .pass-main { padding: 14px 14px 14px 14px; }
     #flighty-root .cols { gap: 14px; }
     #flighty-root .rank-scroll { max-height: 220px; }
     #flighty-root .form-actions { flex-wrap: wrap; }
@@ -458,6 +458,7 @@
   #flighty-root .trip-opt { flex: 1; display:flex; align-items:center; justify-content:center; gap: 8px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(var(--fx),.05); color: var(--text-dim); font-size: 13px; font-family: inherit; cursor: pointer; }
   #flighty-root .trip-opt.active[data-trip="leisure"] { background: rgba(232,180,99,.18); border-color: var(--gold); color: var(--gold); font-weight: 600; }
   #flighty-root .trip-opt.active[data-trip="work"] { background: rgba(240,117,90,.18); border-color: var(--coral); color: var(--coral); font-weight: 600; }
+  #flighty-root .pass-top-right { display:flex; align-items:center; gap: 8px; flex-shrink: 0; }
 </style>
 
 <script>
@@ -1585,11 +1586,16 @@ function renderPass(f, idx) {
   }
 
   const co2Tonnes = estimateCO2Tonnes(f.km);
-  const topRowHtml = (f.flightNumber || co2Tonnes !== null) ? `
+  const workTrip = isWorkFlight(f);
+  const tripBadgeHtml = `<span class="trip-badge ${workTrip ? 'trip-work' : 'trip-leisure'}" title="${workTrip ? 'Viaggio di lavoro' : 'Viaggio di vacanza'}">${tripIconSvg(workTrip, 14)}</span>`;
+  const topRowHtml = `
         <div class="pass-top-row">
           <div class="pass-flightnum">${f.flightNumber || ''}</div>
-          ${co2Tonnes !== null ? `<div class="pass-co2" title="Stima CO2eq a fasce di distanza — non un dato certificato">🌱 ${fmtNum(co2Tonnes,2)} t CO₂eq</div>` : ''}
-        </div>` : '';
+          <div class="pass-top-right">
+            ${co2Tonnes !== null ? `<div class="pass-co2" title="Stima CO2eq a fasce di distanza — non un dato certificato">🌱 ${fmtNum(co2Tonnes,2)} t CO₂eq</div>` : ''}
+            ${tripBadgeHtml}
+          </div>
+        </div>`;
 
   return `
     <div class="pass${future?' pass-future':''}" data-idx="${idx}">
@@ -1610,11 +1616,10 @@ function renderPass(f, idx) {
           ${f.km ? `<span>${fmtDist(f.km)} ${distUnit()}</span>` : ''}
         </div>
         ${priceLineHtml}
-        <div class="pass-line-extra">
-          <span class="trip-badge ${isWorkFlight(f) ? 'trip-work' : 'trip-leisure'}" title="${isWorkFlight(f) ? 'Viaggio di lavoro' : 'Viaggio di vacanza'}">${tripIconSvg(isWorkFlight(f), 14)}</span>
+        ${(future || noteWithoutWork(f.note)) ? `<div class="pass-line-extra">
           ${future ? `<span class="pass-tag pass-tag-future">In programma</span>` : ''}
           ${noteWithoutWork(f.note) ? `<span class="pass-tag" title="${noteWithoutWork(f.note)}">${noteWithoutWork(f.note)}</span>` : ''}
-        </div>
+        </div>` : ''}
       </div>
       <div class="pass-stub">
         <div class="date-d">${day}</div>
