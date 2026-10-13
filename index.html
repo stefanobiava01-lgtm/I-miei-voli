@@ -2411,7 +2411,12 @@ function computeRecords() {
     longest: pick(withKm, 'km', 'max'),
     shortest: pick(withKm, 'km', 'min'),
     priciest: pick(withPrice, 'price', 'max'),
-    cheapest: pick(withPrice, 'price', 'min'),
+    cheapest: (() => {
+      const arr = withPrice.filter(f => f.km > 0).map(f => ({ f, per100: f.price / f.km * 100 }));
+      if (!arr.length) return null;
+      arr.sort((a, b) => a.per100 - b.per100 || b.f.date.localeCompare(a.f.date));
+      return arr[0];
+    })(),
     tail: topTail && topTail[1].length > 1 ? { tail: topTail[0], count: topTail[1].length, aircraft: topTail[1][0].aircraft } : null,
     route: topRoute && topRoute[1].length > 1 ? { codes: topRoute[0].split('|'), count: topRoute[1].length } : null,
     total: list.length
@@ -2420,18 +2425,18 @@ function computeRecords() {
 function renderRecordsPanel() {
   const r = computeRecords();
   if (!r.total) return '';
-  const flightTile = (icon, label, f, big) => f ? `
+  const flightTile = (icon, label, f, big, extraSub) => f ? `
       <div class="rec-tile clickable" data-rec-idx="${flights.indexOf(f)}">
         <div class="rec-label"><span class="rec-ico">${icon}</span>${label}</div>
         <div class="rec-big">${big}</div>
-        <div class="rec-sub">${f.from} → ${f.to}</div>
+        <div class="rec-sub">${f.from} → ${f.to}${extraSub ? ' · ' + extraSub : ''}</div>
         <div class="rec-sub rec-sub-dim">${getAirlineLogo(f.company)} ${fmtDateShort(f.date, true)}</div>
       </div>` : '';
   const tiles = [
     flightTile('🚀', 'Volo più lungo', r.longest, r.longest && `${fmtDist(r.longest.km)} <small>${distUnit()}</small>`),
     flightTile('📌', 'Volo più breve', r.shortest, r.shortest && `${fmtDist(r.shortest.km)} <small>${distUnit()}</small>`),
     flightTile('💎', 'Volo più caro', r.priciest, r.priciest && `${cur()}${fmtNum(r.priciest.price, 2)}`),
-    flightTile('🏷️', 'Volo più economico', r.cheapest, r.cheapest && `${cur()}${fmtNum(r.cheapest.price, 2)}`),
+    flightTile('🏷️', 'Volo più economico', r.cheapest && r.cheapest.f, r.cheapest && `${cur()}${fmtNum(r.cheapest.per100 * per100Mul(), 2)} <small>/100 ${distUnit()}</small>`, r.cheapest && `${cur()}${fmtNum(r.cheapest.f.price, 2)}`),
     r.tail ? `
       <div class="rec-tile clickable" data-tail="${r.tail.tail}" title="Clicca per vedere tutti i voli di questo aereo">
         <div class="rec-label"><span class="rec-ico">🛩️</span>Aereo più visto</div>
