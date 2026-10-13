@@ -470,6 +470,20 @@
   #flighty-root .chip-leisure.active { background: var(--gold); border-color: var(--gold); color: #2a1a05; font-weight: 600; }
   #flighty-root .sort-row { display:flex; align-items:center; gap: 10px; margin: 0 0 14px; font-size: 12px; color: var(--text-dim); }
   @media (max-width: 860px) { #flighty-root .search-field, #flighty-root .sort-row .set-select { font-size: 16px; } }
+
+  #flighty-root .records-panel { margin-bottom: 18px; }
+  #flighty-root .rec-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (max-width: 860px) { #flighty-root .rec-grid { grid-template-columns: repeat(2, 1fr); } }
+  #flighty-root .rec-tile { background: rgba(var(--fx),.04); border: 1px solid rgba(var(--fx),.1); border-radius: 12px; padding: 12px 13px; min-width: 0; display:flex; flex-direction:column; gap: 2px; }
+  #flighty-root .rec-tile.clickable { cursor: pointer; transition: border-color .15s, background .15s; }
+  #flighty-root .rec-tile.clickable:hover { border-color: var(--teal); background: rgba(var(--fx),.07); }
+  #flighty-root .rec-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-dim); display:flex; align-items:center; gap: 6px; margin-bottom: 4px; }
+  #flighty-root .rec-ico { font-size: 14px; }
+  #flighty-root .rec-big { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: var(--gold); line-height: 1.15; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #flighty-root .rec-big small { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+  #flighty-root .rec-big.rec-mono { font-family: 'IBM Plex Mono', monospace; font-size: 19px; color: var(--teal); }
+  #flighty-root .rec-sub { font-size: 12px; color: var(--text); overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #flighty-root .rec-sub-dim { color: var(--text-dim); font-size: 11px; }
 </style>
 
 <script>
@@ -2380,6 +2394,67 @@ function renderFlownView(stats) {
     ${renderBottomNav()}`;
 }
 
+// --- Record e curiosità (sui voli già fatti, rispettando i filtri attivi) ---
+function computeRecords() {
+  const list = applyGlobalFilters(getBaseFlights(), null).filter(isFlown);
+  const byDateDesc = (a, b) => b.date.localeCompare(a.date);
+  const pick = (arr, key, dir) => arr.length ? arr.slice().sort((a, b) => (dir === 'max' ? b[key] - a[key] : a[key] - b[key]) || byDateDesc(a, b))[0] : null;
+  const withKm = list.filter(f => f.km > 0);
+  const withPrice = list.filter(f => f.price > 0);
+  const tails = {};
+  list.forEach(f => { if (f.tail) (tails[f.tail] = tails[f.tail] || []).push(f); });
+  const topTail = Object.entries(tails).sort((a, b) => b[1].length - a[1].length || b[1][0].date.localeCompare(a[1][0].date))[0];
+  const routes = {};
+  list.forEach(f => { const k = [f.from, f.to].sort().join('|'); (routes[k] = routes[k] || []).push(f); });
+  const topRoute = Object.entries(routes).sort((a, b) => b[1].length - a[1].length)[0];
+  return {
+    longest: pick(withKm, 'km', 'max'),
+    shortest: pick(withKm, 'km', 'min'),
+    priciest: pick(withPrice, 'price', 'max'),
+    cheapest: pick(withPrice, 'price', 'min'),
+    tail: topTail && topTail[1].length > 1 ? { tail: topTail[0], count: topTail[1].length, aircraft: topTail[1][0].aircraft } : null,
+    route: topRoute && topRoute[1].length > 1 ? { codes: topRoute[0].split('|'), count: topRoute[1].length } : null,
+    total: list.length
+  };
+}
+function renderRecordsPanel() {
+  const r = computeRecords();
+  if (!r.total) return '';
+  const flightTile = (icon, label, f, big) => f ? `
+      <div class="rec-tile clickable" data-rec-idx="${flights.indexOf(f)}">
+        <div class="rec-label"><span class="rec-ico">${icon}</span>${label}</div>
+        <div class="rec-big">${big}</div>
+        <div class="rec-sub">${f.from} → ${f.to}</div>
+        <div class="rec-sub rec-sub-dim">${getAirlineLogo(f.company)} ${fmtDateShort(f.date, true)}</div>
+      </div>` : '';
+  const tiles = [
+    flightTile('🚀', 'Volo più lungo', r.longest, r.longest && `${fmtDist(r.longest.km)} <small>${distUnit()}</small>`),
+    flightTile('📌', 'Volo più breve', r.shortest, r.shortest && `${fmtDist(r.shortest.km)} <small>${distUnit()}</small>`),
+    flightTile('💎', 'Volo più caro', r.priciest, r.priciest && `${cur()}${fmtNum(r.priciest.price, 2)}`),
+    flightTile('🏷️', 'Volo più economico', r.cheapest, r.cheapest && `${cur()}${fmtNum(r.cheapest.price, 2)}`),
+    r.tail ? `
+      <div class="rec-tile clickable" data-tail="${r.tail.tail}" title="Clicca per vedere tutti i voli di questo aereo">
+        <div class="rec-label"><span class="rec-ico">🛩️</span>Aereo più visto</div>
+        <div class="rec-big rec-mono">${r.tail.tail}</div>
+        <div class="rec-sub">${r.tail.count} voli</div>
+        <div class="rec-sub rec-sub-dim">${r.tail.aircraft || ''}</div>
+      </div>` : '',
+    r.route ? `
+      <div class="rec-tile">
+        <div class="rec-label"><span class="rec-ico">🔁</span>Rotta più frequente</div>
+        <div class="rec-big">${r.route.codes[0]} ↔ ${r.route.codes[1]}</div>
+        <div class="rec-sub">${r.route.count} voli</div>
+        <div class="rec-sub rec-sub-dim">${airportInfo(r.route.codes[0]).city} — ${airportInfo(r.route.codes[1]).city}</div>
+      </div>` : ''
+  ].filter(Boolean).join('');
+  if (!tiles) return '';
+  return `
+    <div class="panel records-panel">
+      <div class="panel-head"><div class="panel-title"><span class="dot"></span>Record e curiosità</div></div>
+      <div class="rec-grid">${tiles}</div>
+    </div>`;
+}
+
 function renderStatsView(stats) {
   return `
     <div class="bg-grid"></div>
@@ -2387,6 +2462,7 @@ function renderStatsView(stats) {
       ${renderTopBar('📊 Statistiche')}
       ${renderFilterBar()}
       ${renderStatStrip(stats)}
+      ${renderRecordsPanel()}
       ${renderRankPanels()}
       <div class="footer-note">I dati vengono salvati online (sincronizzati su tutti i tuoi dispositivi). Clicca anno / aeroporto / compagnia / aereo per filtrare tutta la dashboard.</div>
     </div>
@@ -2697,6 +2773,7 @@ function bindEvents(mapFlights) {
           msg.textContent = 'Aggiornato solo su questo dispositivo — controlla la connessione.';
           msg.style.color = '#F0755A';
         }
+        pendingHighlightFlightId = editingFlightId; // dopo il salvataggio torna al volo modificato
         editingFlightId = null;
       } else {
         try {
@@ -2727,6 +2804,18 @@ function bindEvents(mapFlights) {
       const view = btn.getAttribute('data-view');
       if (view === currentView) return;
       currentView = view;
+      render();
+    });
+  });
+
+  root.querySelectorAll('.rec-tile[data-rec-idx]').forEach(tile => {
+    tile.addEventListener('click', () => {
+      const f = flights[parseInt(tile.getAttribute('data-rec-idx'), 10)];
+      pendingHighlightFlightId = f ? f.id : null;
+      currentFilter = 'all';
+      searchTerm = '';
+      globalFilters = { year: null, airport: null, company: null, aircraft: null };
+      currentView = 'flown';
       render();
     });
   });
