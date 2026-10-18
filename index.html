@@ -471,7 +471,12 @@
   #flighty-root .sort-row { display:flex; align-items:center; gap: 10px; margin: 0 0 14px; font-size: 12px; color: var(--text-dim); }
   @media (max-width: 860px) { #flighty-root .search-field, #flighty-root .sort-row .set-select { font-size: 16px; } }
 
-  #flighty-root .records-panel { margin-bottom: 18px; }
+  #flighty-root .records-panel { margin-bottom: 20px; }
+  #flighty-root .stat-strip { margin-bottom: 20px; }
+  #flighty-root .cols > .panel { margin-bottom: 0; }
+  #flighty-root .rank-grid { grid-template-columns: 1fr 1fr; align-items: stretch; }
+  @media (max-width: 860px) { #flighty-root .rank-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) { #flighty-root .records-panel, #flighty-root .stat-strip, #flighty-root .panel { margin-bottom: 14px; } #flighty-root .cols > .panel { margin-bottom: 0; } }
   #flighty-root .rec-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   @media (max-width: 860px) { #flighty-root .rec-grid { grid-template-columns: repeat(2, 1fr); } }
   #flighty-root .rec-tile { background: rgba(var(--fx),.04); border: 1px solid rgba(var(--fx),.1); border-radius: 12px; padding: 12px 13px; min-width: 0; display:flex; flex-direction:column; gap: 2px; }
@@ -949,6 +954,7 @@ async function loadFlights() {
     syncMode = cached ? 'offline-cached' : 'offline';
   }
   render();
+  setTimeout(autoDownloadOfflineTiles, 4000);
   resolveUnknownAirports().then(changed => { if (changed) render(); });
   resolveUnknownAirlines().then(changed => { if (changed) render(); });
 }
@@ -1526,7 +1532,7 @@ function renderRankPanels() {
       : '';
 
   return `
-    <div class="cols">
+    <div class="cols rank-grid">
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title"><span class="dot"></span>Voli per anno</div>
@@ -1556,8 +1562,6 @@ function renderRankPanels() {
         </div>
         ${renderDualRankList(companyCounts, companyKm, globalFilters.company, 'company', companySortBy, name => `${getAirlineLogo(name)} ${name}`)}
       </div>
-    </div>
-    <div class="cols">
       <div class="panel">
         <div class="panel-head"><div class="panel-title"><span class="dot"></span>Aeroporti più visitati</div></div>
         ${topRouteHtml}
@@ -2095,22 +2099,24 @@ async function updateTilesCount() {
     el.textContent = `Salvati ${fmtNum(n)} riquadri.`;
   } catch (e) {}
 }
-async function downloadOfflineTiles() {
-  const prog = () => document.getElementById('tiles-progress');
-  const btn = document.getElementById('tiles-download');
-  const scope = (document.getElementById('tiles-scope') || {}).value || 'upcoming';
-  if (!navigator.onLine) { prog().textContent = 'Serve la connessione per scaricare le mappe.'; return; }
-  if (!(navigator.serviceWorker && navigator.serviceWorker.controller)) {
-    prog().textContent = 'Chiudi e riapri l\'app una volta, poi riprova (serve per salvare le mappe).'; return;
-  }
-  const list = scope === 'upcoming' ? flights.filter(isFuture) : flights;
-  const codes = new Set(); list.forEach(f => { codes.add(f.from); codes.add(f.to); });
-  const pts = [...codes].map(c => airportInfo(c)).filter(a => a && a.lat && a.lon);
-  if (!pts.length) { prog().textContent = scope === 'upcoming' ? 'Nessun volo in programma.' : 'Nessun aeroporto trovato.'; return; }
-  const zooms = scope === 'upcoming' ? [5, 6, 7, 8, 9] : [5, 6, 7];
-  const bases = appSettings.mapDefault === 'dark' ? [TILE_BASES[2], TILE_BASES[3]] : [TILE_BASES[0], TILE_BASES[1]];
+const TILES_DONE_KEY = 'imieivoli_tiles_done_v1';
+let tilesStatus = '', tilesBusy = false;
+function setTilesStatus(t) { tilesStatus = t; const el = document.getElementById('tiles-progress'); if (el) el.textContent = t; }
+// Scarica in automatico (e in silenzio) le mappe intorno a tutti i miei aeroporti, solo quelli non ancora salvati.
+async function autoDownloadOfflineTiles() {
+  if (tilesBusy || !navigator.onLine) return;
+  if (!(navigator.serviceWorker && navigator.serviceWorker.controller)) return;
+  if (!flights.length) return;
+  const styleKey = appSettings.mapDefault === 'dark' ? 'dark' : 'sat';
+  let done = {};
+  try { done = JSON.parse(localStorage.getItem(TILES_DONE_KEY) || '{}') || {}; } catch (e) {}
+  const have = new Set(done[styleKey] || []);
+  const codes = new Set(); flights.forEach(f => { codes.add(f.from); codes.add(f.to); });
+  const todo = [...codes].filter(c => c && !have.has(c)).map(c => ({ c, a: airportInfo(c) })).filter(o => o.a && o.a.lat && o.a.lon);
+  if (!todo.length) return;
+  const bases = styleKey === 'dark' ? [TILE_BASES[2], TILE_BASES[3]] : [TILE_BASES[0], TILE_BASES[1]];
   const urls = new Set();
-  pts.forEach(a => zooms.forEach(z => {
+  todo.forEach(({ a }) => [5, 6, 7].forEach(z => {
     const [cx, cy] = lonLatToTile(a.lat, a.lon, z);
     const n = Math.pow(2, z);
     for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
@@ -2120,23 +2126,28 @@ async function downloadOfflineTiles() {
     }
   }));
   const all = [...urls];
-  btn.disabled = true;
-  let done = 0, failed = 0, i = 0;
+  tilesBusy = true;
+  let n = 0, failed = 0, i = 0;
   const worker = async () => {
     while (i < all.length) {
       const url = all[i++];
       try { const r = await fetch(url, { mode: 'cors' }); if (!r.ok) failed++; } catch (e) { failed++; }
-      done++;
-      const el = prog(); if (el && done % 5 === 0) el.textContent = `Scarico… ${done}/${all.length}`;
+      n++;
+      if (n % 10 === 0) setTilesStatus(`Scarico le mappe… ${n}/${all.length}`);
     }
   };
-  await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
-  const el = prog();
-  if (el) el.textContent = failed ? `Finito: ${all.length - failed} riquadri salvati, ${failed} non riusciti.` : `Fatto: ${all.length} riquadri salvati ✓`;
-  const b2 = document.getElementById('tiles-download'); if (b2) b2.disabled = false;
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  tilesBusy = false;
+  if (failed < all.length * 0.1) {
+    done[styleKey] = [...have, ...todo.map(o => o.c)];
+    try { localStorage.setItem(TILES_DONE_KEY, JSON.stringify(done)); } catch (e) {}
+    setTilesStatus('Mappe aggiornate ✓');
+  } else {
+    setTilesStatus('Alcune mappe non scaricate, riproverò al prossimo avvio.');
+  }
   updateTilesCount();
 }
-
+if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('controllerchange', () => setTimeout(autoDownloadOfflineTiles, 3000));
 
 async function fixAircraftNames() {
   const groups = {};
@@ -2218,13 +2229,9 @@ function renderSettingsView() {
         ${row('Colore rotte volate', 'Le rotte in programma restano arancioni', `<div class="swatches">${routeSw}</div>`)}
         ${row('Spessore rotte', '', seg('routeWidth', [['thin','Sottile'],['normal','Normale'],['thick','Spesso']]))}
         <div class="set-row set-row-col">
-          <div><div class="set-label">Scarica mappe per l'uso offline</div><div class="set-sub">Salva le zone intorno agli aeroporti (livelli della vista predefinita), da fare con la connessione attiva. <span id="tiles-count"></span></div></div>
-          <div class="set-btns">
-            <select class="set-select" id="tiles-scope"><option value="upcoming">Aeroporti dei prossimi voli</option><option value="all">Tutti i miei aeroporti</option></select>
-            <button class="set-btn" id="tiles-download">Scarica</button>
-          </div>
-          <div class="set-progress" id="tiles-progress"></div>
-        </div>
+          <div><div class="set-label">Mappe offline</div><div class="set-sub">Le mappe intorno ai tuoi aeroporti si salvano da sole quando sei online. <span id="tiles-count"></span></div></div>
+          <div class="set-progress" id="tiles-progress">${tilesStatus}</div>
+</div>
       </div>
 
       <div class="set-cat">Unità e formati</div>
@@ -2551,15 +2558,13 @@ function bindEvents(mapFlights) {
     });
     const cc = root.querySelector('#set-clearcache');
     if (cc) cc.addEventListener('click', async () => {
-      try { localStorage.removeItem(LOCAL_CACHE_KEY); } catch (e) {}
+      try { localStorage.removeItem(LOCAL_CACHE_KEY); localStorage.removeItem(TILES_DONE_KEY); } catch (e) {}
       try { if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.filter(k => k.indexOf('tiles') >= 0).map(k => caches.delete(k))); } } catch (e) {}
       cc.textContent = 'Fatto ✓';
       updateTilesCount();
     });
     const fa = root.querySelector('#fix-aircraft');
     if (fa) fa.addEventListener('click', fixAircraftNames);
-    const td = root.querySelector('#tiles-download');
-    if (td) td.addEventListener('click', downloadOfflineTiles);
     updateTilesCount();
   }
   const logoutLink = root.querySelector('#logout-link');
