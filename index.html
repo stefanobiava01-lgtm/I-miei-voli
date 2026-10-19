@@ -471,6 +471,9 @@
   #flighty-root .sort-row { display:flex; align-items:center; gap: 10px; margin: 0 0 14px; font-size: 12px; color: var(--text-dim); }
   @media (max-width: 860px) { #flighty-root .search-field, #flighty-root .sort-row .set-select { font-size: 16px; } }
 
+  #flighty-root .pass-ac { display: inline-flex; align-items: center; gap: 6px; }
+  #flighty-root .ac-ico { width: 22px; height: 22px; flex: none; fill: currentColor; opacity: .85; }
+  #flighty-root .ac-ico.ac-brand { fill: color-mix(in srgb, var(--ac) 62%, rgb(var(--fx))); opacity: 1; }
   #flighty-root .records-panel { margin-bottom: 20px; }
   #flighty-root .stat-strip { margin-bottom: 20px; }
   #flighty-root .cols > .panel { margin-bottom: 0; }
@@ -525,6 +528,43 @@ function airlineLogoImg(companyName, size) {
   return `<img src="https://images.kiwi.com/airlines/64/${code}.png" alt="${companyName}" title="${companyName}" class="airline-logo-img" style="height:${size}px" onerror="this.outerHTML='<span class=&quot;airline-emoji&quot;>✈</span>'"/>`;
 }
 function getAirlineLogo(companyName) { return airlineLogoImg(companyName); }
+
+// --- Sagome degli aerei (viste dall'alto, per categoria) e colori delle compagnie ---
+const AIRLINE_COLORS = {
+  'Meridiana':'#1E5AA8','Air Italy':'#1E5AA8','Easyjet':'#FF6600','EasyJet':'#FF6600','Ryanair':'#073590',
+  'Lufthansa':'#05164D','Alitalia':'#0B4EA2','ITA Airways':'#0B4EA2','Ita':'#0B4EA2','ITA':'#0B4EA2','KLM':'#00A1DE',
+  'Air France':'#002157','British Airways':'#075AAA','Iberia':'#D7192D','TAP':'#E4002B','TAP Portugal':'#E4002B',
+  'TAP Air Portugal':'#E4002B','Swiss':'#E2001A','Vueling':'#F5B800','Volotea':'#FF3A5E','Wizz Air':'#C6007E',
+  'WizzAir':'#C6007E','Norwegian':'#D81939','SAS':'#000066','Aer Lingus':'#009A6E','Finnair':'#0B1560',
+  'Austrian':'#E2001A','Austrian Airlines':'#E2001A','Brussels Airlines':'#0A2D6E','Turkish Airlines':'#C8102E',
+  'Emirates':'#D71920','Qatar Airways':'#5C0632','American Airlines':'#0078D2','United Airlines':'#0033A0',
+  'Delta':'#C01933','Air Malta':'#D8232A','Croatia Airlines':'#0A3A7B','Blue Air':'#1C75BC','Transavia':'#00A651',
+  'Air Baltic':'#8DC63F','Aegean':'#003876','Aegean Airlines':'#003876','Alba Star':'#E30613','Albastar':'#E30613',
+  'Cabo Verde Airlines':'#0072BC','Neos':'#E4002B'
+};
+function aircraftCategory(model) {
+  const m = (model || '').toUpperCase();
+  if (!m) return 'narrow';
+  if (/A340|A380|747|A346/.test(m)) return 'quad';
+  if (/A330|A350|A310|A300|767|777|787|DC-?10|MD-?11|IL-?96/.test(m)) return 'wide';
+  if (/ATR|Q400|DASH|DHC|SAAB|FOKKER 50|F50|DORNIER|TWIN OTTER|BEECH|CESSNA|PILATUS/.test(m)) return 'prop';
+  if (/EMBRAER|ERJ|EMB|E-?1[79]\d|E-?2\d\d|CRJ|BOMBARDIER|FOKKER|F70|F100|BAE|AVRO|SUPERJET|SSJ|SUKHOI|RJ\d/.test(m)) return 'regional';
+  return 'narrow';
+}
+const AC_SHAPES = {
+  narrow: '<rect x="27.3" y="3" width="5.4" height="54" rx="2.7"/><path d="M27.3 24L3 39.5v3.2L27.3 35zM32.7 24L57 39.5v3.2L32.7 35z"/><path d="M27.3 49L16 56.5v2.2L27.3 55zM32.7 49L44 56.5v2.2L32.7 55z"/><rect x="12" y="31" width="4" height="7.5" rx="2"/><rect x="44" y="31" width="4" height="7.5" rx="2"/>',
+  wide: '<rect x="26.8" y="2" width="6.4" height="56" rx="3.2"/><path d="M26.8 22L1.5 40.5v3.6L26.8 36zM33.2 22L58.5 40.5v3.6L33.2 36z"/><path d="M26.8 48.5L14 57v2.4L26.8 54.5zM33.2 48.5L46 57v2.4L33.2 54.5z"/><rect x="10.5" y="31" width="4.8" height="9" rx="2.4"/><rect x="44.7" y="31" width="4.8" height="9" rx="2.4"/>',
+  quad: '<rect x="26.8" y="2" width="6.4" height="56" rx="3.2"/><path d="M26.8 22L1.5 40.5v3.6L26.8 36zM33.2 22L58.5 40.5v3.6L33.2 36z"/><path d="M26.8 48.5L14 57v2.4L26.8 54.5zM33.2 48.5L46 57v2.4L33.2 54.5z"/><rect x="8" y="33" width="4.2" height="8" rx="2.1"/><rect x="17.5" y="28" width="4.2" height="8" rx="2.1"/><rect x="47.8" y="33" width="4.2" height="8" rx="2.1"/><rect x="38.3" y="28" width="4.2" height="8" rx="2.1"/>',
+  prop: '<rect x="27.5" y="4" width="5" height="53" rx="2.5"/><path d="M27.5 22L3 24.5v5L27.5 31zM32.5 22L57 24.5v5L32.5 31z"/><path d="M27.5 50L15 55v3L27.5 55zM32.5 50L45 55v3L32.5 55z"/><rect x="13" y="19" width="3.6" height="13" rx="1.8"/><rect x="43.4" y="19" width="3.6" height="13" rx="1.8"/><rect x="11" y="16" width="7.6" height="1.4" rx=".7"/><rect x="41.4" y="16" width="7.6" height="1.4" rx=".7"/>',
+  regional: '<rect x="27.8" y="3" width="4.4" height="54" rx="2.2"/><path d="M27.8 25L8 37.5v3L27.8 34zM32.2 25L52 37.5v3L32.2 34z"/><path d="M27.8 49L15 55.5v2.5L27.8 55zM32.2 49L45 55.5v2.5L32.2 55z"/><rect x="22.6" y="40" width="3.8" height="9" rx="1.9"/><rect x="33.6" y="40" width="3.8" height="9" rx="1.9"/>'
+};
+function aircraftIconHtml(f) {
+  const cat = aircraftCategory(f.aircraft);
+  const col = AIRLINE_COLORS[f.company];
+  const st = col ? ` style="--ac:${col}"` : '';
+  return `<svg class="ac-ico${col ? ' ac-brand' : ''}" viewBox="0 0 60 60"${st} aria-hidden="true"><g transform="rotate(90 30 30)">${AC_SHAPES[cat]}</g></svg>`;
+}
+
 
 const COUNTRY_ISO2 = {
   'Italia': 'it', 'Paesi Bassi': 'nl', 'Francia': 'fr', 'Regno Unito': 'gb',
@@ -1668,7 +1708,7 @@ function renderPass(f, idx) {
           <span class="pass-airline"><b>${getAirlineLogo(f.company)} ${f.company}</b></span>
         </div>
         <div class="pass-line-fixed">
-          ${f.aircraft ? `<span>${f.aircraft}</span>` : ''}
+          ${f.aircraft ? `<span class="pass-ac">${aircraftIconHtml(f)}${f.aircraft}</span>` : ''}
           ${f.tail ? `<span class="pass-tail${isRepeatTail?' pass-tail-repeat':''}"${isRepeatTail?` data-tail="${f.tail}" title="Aereo visto ${tailCounts[f.tail]} volte — clicca per vedere gli altri voli"`:''}>${f.tail}</span>` : ''}
           ${f.km ? `<span>${fmtDist(f.km)} ${distUnit()}</span>` : ''}
         </div>
