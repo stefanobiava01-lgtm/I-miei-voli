@@ -472,7 +472,7 @@
   @media (max-width: 860px) { #flighty-root .search-field, #flighty-root .sort-row .set-select { font-size: 16px; } }
 
   #flighty-root .pass-ac { display: inline-flex; align-items: center; gap: 6px; }
-  #flighty-root .ac-ico { width: 22px; height: 22px; flex: none; fill: currentColor; opacity: .85; }
+  #flighty-root .ac-ico { width: 44px; height: 17px; flex: none; fill: currentColor; opacity: .85; }
   #flighty-root .ac-ico.ac-brand { fill: color-mix(in srgb, var(--ac) 62%, rgb(var(--fx))); opacity: 1; }
   #flighty-root .records-panel { margin-bottom: 20px; }
   #flighty-root .stat-strip { margin-bottom: 20px; }
@@ -552,17 +552,17 @@ function aircraftCategory(model) {
   return 'narrow';
 }
 const AC_SHAPES = {
-  narrow: '<rect x="27.3" y="3" width="5.4" height="54" rx="2.7"/><path d="M27.3 24L3 39.5v3.2L27.3 35zM32.7 24L57 39.5v3.2L32.7 35z"/><path d="M27.3 49L16 56.5v2.2L27.3 55zM32.7 49L44 56.5v2.2L32.7 55z"/><rect x="12" y="31" width="4" height="7.5" rx="2"/><rect x="44" y="31" width="4" height="7.5" rx="2"/>',
-  wide: '<rect x="26.8" y="2" width="6.4" height="56" rx="3.2"/><path d="M26.8 22L1.5 40.5v3.6L26.8 36zM33.2 22L58.5 40.5v3.6L33.2 36z"/><path d="M26.8 48.5L14 57v2.4L26.8 54.5zM33.2 48.5L46 57v2.4L33.2 54.5z"/><rect x="10.5" y="31" width="4.8" height="9" rx="2.4"/><rect x="44.7" y="31" width="4.8" height="9" rx="2.4"/>',
-  quad: '<rect x="26.8" y="2" width="6.4" height="56" rx="3.2"/><path d="M26.8 22L1.5 40.5v3.6L26.8 36zM33.2 22L58.5 40.5v3.6L33.2 36z"/><path d="M26.8 48.5L14 57v2.4L26.8 54.5zM33.2 48.5L46 57v2.4L33.2 54.5z"/><rect x="8" y="33" width="4.2" height="8" rx="2.1"/><rect x="17.5" y="28" width="4.2" height="8" rx="2.1"/><rect x="47.8" y="33" width="4.2" height="8" rx="2.1"/><rect x="38.3" y="28" width="4.2" height="8" rx="2.1"/>',
-  prop: '<rect x="27.5" y="4" width="5" height="53" rx="2.5"/><path d="M27.5 22L3 24.5v5L27.5 31zM32.5 22L57 24.5v5L32.5 31z"/><path d="M27.5 50L15 55v3L27.5 55zM32.5 50L45 55v3L32.5 55z"/><rect x="13" y="19" width="3.6" height="13" rx="1.8"/><rect x="43.4" y="19" width="3.6" height="13" rx="1.8"/><rect x="11" y="16" width="7.6" height="1.4" rx=".7"/><rect x="41.4" y="16" width="7.6" height="1.4" rx=".7"/>',
-  regional: '<rect x="27.8" y="3" width="4.4" height="54" rx="2.2"/><path d="M27.8 25L8 37.5v3L27.8 34zM32.2 25L52 37.5v3L32.2 34z"/><path d="M27.8 49L15 55.5v2.5L27.8 55zM32.2 49L45 55.5v2.5L32.2 55z"/><rect x="22.6" y="40" width="3.8" height="9" rx="1.9"/><rect x="33.6" y="40" width="3.8" height="9" rx="1.9"/>'
+  narrow: '<path d="M8 9H52Q60 9 62 12Q60 15 52 15H13Q8 15 5.5 11Z"/><path d="M16 9.5L9.5 1.5H4.5L6.5 10.5Z"/><path d="M32 13.5H40L30 19H26.5Z"/><rect x="35" y="15.6" width="7.5" height="3.6" rx="1.8"/>',
+  wide: '<path d="M7 8H50Q60 8 62.5 12Q60 16 50 16H13Q7.5 16 5 11.5Z"/><path d="M17 8.5L9 .5H3.5L6 9.5Z"/><path d="M30 15H42L28.5 21.8H24Z"/><rect x="34" y="17.2" width="9.5" height="4.6" rx="2.3"/>',
+  quad: '<path d="M7 8H50Q60 8 62.5 12Q60 16 50 16H13Q7.5 16 5 11.5Z"/><path d="M38 8.5Q42 3.5 50.5 8.5Z"/><path d="M17 8.5L9 .5H3.5L6 9.5Z"/><path d="M30 15H42L28.5 21.8H24Z"/><rect x="34" y="17.2" width="9.5" height="4.6" rx="2.3"/><rect x="22" y="18.6" width="8.5" height="4" rx="2" opacity=".75"/>',
+  prop: '<path d="M8 9.5H50Q58 9.5 60 12.5Q58 15.5 50 15.5H13Q8 15.5 5.5 11.5Z"/><path d="M16 10L11 1.5H5L7 10.5Z"/><rect x="2" y=".6" width="11" height="1.8" rx=".9"/><rect x="27" y="7" width="13" height="3" rx="1.5"/><rect x="31" y="9" width="10" height="3.6" rx="1.8"/><rect x="41.6" y="3.2" width="1.6" height="10" rx=".8"/>',
+  regional: '<path d="M8 9.5H52Q59.5 9.5 61.5 12.2Q59.5 14.8 52 14.8H13Q8 14.8 5.5 11.5Z"/><path d="M16 10L11.5 1.5H5.5L7.5 10.5Z"/><rect x="2" y=".6" width="11.5" height="1.8" rx=".9"/><rect x="17" y="6.4" width="9" height="3.6" rx="1.8"/><path d="M31 13.5H38L29.5 18.5H26Z"/>'
 };
 function aircraftIconHtml(f) {
   const cat = aircraftCategory(f.aircraft);
   const col = AIRLINE_COLORS[f.company];
   const st = col ? ` style="--ac:${col}"` : '';
-  return `<svg class="ac-ico${col ? ' ac-brand' : ''}" viewBox="0 0 60 60"${st} aria-hidden="true"><g transform="rotate(90 30 30)">${AC_SHAPES[cat]}</g></svg>`;
+  return `<svg class="ac-ico${col ? ' ac-brand' : ''}" viewBox="0 0 64 24"${st} aria-hidden="true">${AC_SHAPES[cat]}</svg>`;
 }
 
 
