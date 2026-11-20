@@ -13,6 +13,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <div id="flighty-root"></div>
 <style>
   html, body {
@@ -471,9 +472,14 @@
   #flighty-root .sort-row { display:flex; align-items:center; gap: 10px; margin: 0 0 14px; font-size: 12px; color: var(--text-dim); }
   @media (max-width: 860px) { #flighty-root .search-field, #flighty-root .sort-row .set-select { font-size: 16px; } }
 
-  #flighty-root .pass-ac { display: inline-flex; align-items: center; gap: 6px; }
-  #flighty-root .ac-ico { width: 44px; height: 17px; flex: none; fill: currentColor; opacity: .85; }
-  #flighty-root .ac-ico.ac-brand { fill: color-mix(in srgb, var(--ac) 62%, rgb(var(--fx))); opacity: 1; }
+  #flighty-root .pass-ret { position:absolute; bottom:6px; left:50%; transform:translateX(-50%); white-space:nowrap; background:none; border:1px solid var(--line); color: var(--text-faint); cursor:pointer; font-size: 10.5px; padding: 3px 7px; border-radius: 999px; line-height:1.2; }
+  #flighty-root .pass-ret:hover { color: var(--teal); border-color: var(--teal); }
+  #flighty-root .pass-stub { padding-bottom: 28px; }
+  #flighty-root #anim-overlay { position:absolute; top:84px; left:64px; z-index:500; min-width:150px; padding:10px 14px; border-radius:14px; background: rgba(18,26,44,.82); backdrop-filter: blur(8px); color:#fff; border:1px solid rgba(255,255,255,.12); pointer-events:none; }
+  #flighty-root #anim-overlay .anim-date { font-size:20px; font-weight:800; letter-spacing:.02em; }
+  #flighty-root #anim-overlay .anim-route { font-size:12px; opacity:.8; margin:2px 0 8px; font-family:'IBM Plex Mono',monospace; }
+  #flighty-root #anim-overlay .anim-bar { height:3px; border-radius:2px; background:rgba(255,255,255,.15); overflow:hidden; }
+  #flighty-root #anim-overlay .anim-bar span { display:block; height:100%; width:0; background:#4FD8C9; }
   #flighty-root .records-panel { margin-bottom: 20px; }
   #flighty-root .stat-strip { margin-bottom: 20px; }
   #flighty-root .cols > .panel { margin-bottom: 0; }
@@ -529,41 +535,6 @@ function airlineLogoImg(companyName, size) {
 }
 function getAirlineLogo(companyName) { return airlineLogoImg(companyName); }
 
-// --- Sagome degli aerei (viste dall'alto, per categoria) e colori delle compagnie ---
-const AIRLINE_COLORS = {
-  'Meridiana':'#1E5AA8','Air Italy':'#1E5AA8','Easyjet':'#FF6600','EasyJet':'#FF6600','Ryanair':'#073590',
-  'Lufthansa':'#05164D','Alitalia':'#0B4EA2','ITA Airways':'#0B4EA2','Ita':'#0B4EA2','ITA':'#0B4EA2','KLM':'#00A1DE',
-  'Air France':'#002157','British Airways':'#075AAA','Iberia':'#D7192D','TAP':'#E4002B','TAP Portugal':'#E4002B',
-  'TAP Air Portugal':'#E4002B','Swiss':'#E2001A','Vueling':'#F5B800','Volotea':'#FF3A5E','Wizz Air':'#C6007E',
-  'WizzAir':'#C6007E','Norwegian':'#D81939','SAS':'#000066','Aer Lingus':'#009A6E','Finnair':'#0B1560',
-  'Austrian':'#E2001A','Austrian Airlines':'#E2001A','Brussels Airlines':'#0A2D6E','Turkish Airlines':'#C8102E',
-  'Emirates':'#D71920','Qatar Airways':'#5C0632','American Airlines':'#0078D2','United Airlines':'#0033A0',
-  'Delta':'#C01933','Air Malta':'#D8232A','Croatia Airlines':'#0A3A7B','Blue Air':'#1C75BC','Transavia':'#00A651',
-  'Air Baltic':'#8DC63F','Aegean':'#003876','Aegean Airlines':'#003876','Alba Star':'#E30613','Albastar':'#E30613',
-  'Cabo Verde Airlines':'#0072BC','Neos':'#E4002B'
-};
-function aircraftCategory(model) {
-  const m = (model || '').toUpperCase();
-  if (!m) return 'narrow';
-  if (/A340|A380|747|A346/.test(m)) return 'quad';
-  if (/A330|A350|A310|A300|767|777|787|DC-?10|MD-?11|IL-?96/.test(m)) return 'wide';
-  if (/ATR|Q400|DASH|DHC|SAAB|FOKKER 50|F50|DORNIER|TWIN OTTER|BEECH|CESSNA|PILATUS/.test(m)) return 'prop';
-  if (/EMBRAER|ERJ|EMB|E-?1[79]\d|E-?2\d\d|CRJ|BOMBARDIER|FOKKER|F70|F100|BAE|AVRO|SUPERJET|SSJ|SUKHOI|RJ\d/.test(m)) return 'regional';
-  return 'narrow';
-}
-const AC_SHAPES = {
-  narrow: '<path d="M8 9H52Q60 9 62 12Q60 15 52 15H13Q8 15 5.5 11Z"/><path d="M16 9.5L9.5 1.5H4.5L6.5 10.5Z"/><path d="M32 13.5H40L30 19H26.5Z"/><rect x="35" y="15.6" width="7.5" height="3.6" rx="1.8"/>',
-  wide: '<path d="M7 8H50Q60 8 62.5 12Q60 16 50 16H13Q7.5 16 5 11.5Z"/><path d="M17 8.5L9 .5H3.5L6 9.5Z"/><path d="M30 15H42L28.5 21.8H24Z"/><rect x="34" y="17.2" width="9.5" height="4.6" rx="2.3"/>',
-  quad: '<path d="M7 8H50Q60 8 62.5 12Q60 16 50 16H13Q7.5 16 5 11.5Z"/><path d="M38 8.5Q42 3.5 50.5 8.5Z"/><path d="M17 8.5L9 .5H3.5L6 9.5Z"/><path d="M30 15H42L28.5 21.8H24Z"/><rect x="34" y="17.2" width="9.5" height="4.6" rx="2.3"/><rect x="22" y="18.6" width="8.5" height="4" rx="2" opacity=".75"/>',
-  prop: '<path d="M8 9.5H50Q58 9.5 60 12.5Q58 15.5 50 15.5H13Q8 15.5 5.5 11.5Z"/><path d="M16 10L11 1.5H5L7 10.5Z"/><rect x="2" y=".6" width="11" height="1.8" rx=".9"/><rect x="27" y="7" width="13" height="3" rx="1.5"/><rect x="31" y="9" width="10" height="3.6" rx="1.8"/><rect x="41.6" y="3.2" width="1.6" height="10" rx=".8"/>',
-  regional: '<path d="M8 9.5H52Q59.5 9.5 61.5 12.2Q59.5 14.8 52 14.8H13Q8 14.8 5.5 11.5Z"/><path d="M16 10L11.5 1.5H5.5L7.5 10.5Z"/><rect x="2" y=".6" width="11.5" height="1.8" rx=".9"/><rect x="17" y="6.4" width="9" height="3.6" rx="1.8"/><path d="M31 13.5H38L29.5 18.5H26Z"/>'
-};
-function aircraftIconHtml(f) {
-  const cat = aircraftCategory(f.aircraft);
-  const col = AIRLINE_COLORS[f.company];
-  const st = col ? ` style="--ac:${col}"` : '';
-  return `<svg class="ac-ico${col ? ' ac-brand' : ''}" viewBox="0 0 64 24"${st} aria-hidden="true">${AC_SHAPES[cat]}</svg>`;
-}
 
 
 const COUNTRY_ISO2 = {
@@ -1321,6 +1292,9 @@ function initLeafletMap(mapFlights) {
   if (mapStyle === 'satellite') { satLayer.addTo(map); if (showLabels) satLabels.addTo(map); }
   else { darkLayer.addTo(map); if (showLabels) darkLabels.addTo(map); }
 
+  const staticGroup = L.layerGroup().addTo(map);
+  window.__flightyStatic = staticGroup;
+  window.__flightyMapFlights = mapFlights;
   const routeSeenFlown = {};
   const routeSeenFuture = {};
   const routeFlightsMap = {}; // key -> array di voli su quella rotta (per il popup al click)
@@ -1357,14 +1331,14 @@ function initLeafletMap(mapFlights) {
         // alone sottostante per far risaltare la linea anche su sfondo chiaro/satellitare
         L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
           color: color, weight: mainWeight + 3.5, opacity: 0.2, dashArray: dashed ? '6, 6' : null, interactive: false
-        }).addTo(map);
+        }).addTo(staticGroup);
       }
       const mainLine = L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
         color: color,
         weight: mainWeight,
         opacity: Math.min(0.85 + weight * 0.05, 1),
         dashArray: dashed ? '6, 6' : null
-      }).addTo(map);
+      }).addTo(staticGroup);
       mainLine.bindPopup(buildRoutePopupHtml(c1, c2, key), { maxWidth: 260 });
       mainLine.on('mouseover', () => mainLine.setStyle({ weight: mainWeight + 2 }));
       mainLine.on('mouseout', () => mainLine.setStyle({ weight: mainWeight }));
@@ -1384,7 +1358,7 @@ function initLeafletMap(mapFlights) {
       weight: 2,
       fillColor: isHome ? '#F0755A' : FLOWN_COLOR,
       fillOpacity: 1
-    }).addTo(map);
+    }).addTo(staticGroup);
     marker.bindPopup(`<b>${a.code}</b> · ${a.city}${a.country ? ', ' + a.country : ''}<br/>${count} vol${count === 1 ? 'o' : 'i'}`);
   });
 
@@ -1392,6 +1366,299 @@ function initLeafletMap(mapFlights) {
   else map.fitBounds(bounds, { padding: [36, 36] });
 
   setTimeout(() => { try { map.invalidateSize(); } catch(e) {} }, 80);
+}
+
+// --- Aggiungi volo di ritorno: apre il modulo con la tratta invertita ---
+function openReturnForm(idx) {
+  const f = flights[idx];
+  if (!f) return;
+  editingFlightId = null;
+  const addForm = root.querySelector('#add-form');
+  resetFormFields();
+  root.querySelector('#f-date').value = '';
+  root.querySelector('#f-company').value = f.company || '';
+  root.querySelector('#f-from').value = f.to || '';
+  root.querySelector('#f-fromcity').value = f.toCity || '';
+  root.querySelector('#f-to').value = f.from || '';
+  root.querySelector('#f-tocity').value = f.fromCity || '';
+  root.querySelector('#f-aircraft').value = f.aircraft || '';
+  root.querySelector('#f-km').value = f.km || '';
+  setTripToggle(isWorkFlight(f));
+  root.querySelector('#form-msg').textContent = 'Ritorno precompilato: scegli la data e controlla gli altri dati.';
+  root.querySelector('#save-flight').textContent = 'Salva volo';
+  root.querySelector('#form-title').textContent = 'Volo di ritorno';
+  addForm.classList.add('open');
+  addForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => { const d = root.querySelector('#f-date'); if (d) d.focus(); }, 350);
+}
+
+// --- Animazione dei voli sulla mappa della home ---
+let routeAnim = null;
+function stopRouteAnimation() {
+  if (!routeAnim) return;
+  routeAnim.cancel = true;
+  cancelAnimationFrame(routeAnim.raf);
+  clearTimeout(routeAnim.timer);
+  const m = window.__flightyMap, sg = window.__flightyStatic;
+  try {
+    if (m) { m.removeLayer(routeAnim.group); if (sg && !m.hasLayer(sg)) m.addLayer(sg); }
+  } catch (e) {}
+  const ov = document.getElementById('anim-overlay'); if (ov) ov.remove();
+  routeAnim = null;
+  const b = root.querySelector('[data-anim]');
+  if (b) { b.classList.remove('active'); b.textContent = '▶'; b.title = 'Animazione dei voli'; }
+}
+function startRouteAnimation() {
+  const m = window.__flightyMap, sg = window.__flightyStatic;
+  if (!m || !sg) return;
+  if (routeAnim) { stopRouteAnimation(); return; }
+  const list = (window.__flightyMapFlights || [])
+    .filter(f => { const a = airportInfo(f.from), b = airportInfo(f.to); return a.lat && b.lat; })
+    .slice().sort((a, b) => a.date.localeCompare(b.date));
+  if (!list.length) return;
+  m.closePopup();
+  m.removeLayer(sg);
+  const group = L.layerGroup().addTo(m);
+  routeAnim = { group, cancel: false, raf: 0, timer: 0 };
+  const btn = root.querySelector('[data-anim]');
+  if (btn) { btn.classList.add('active'); btn.textContent = '⏹'; btn.title = 'Ferma animazione'; }
+  const host = root.querySelector('.app-map-full');
+  const ov = document.createElement('div');
+  ov.id = 'anim-overlay';
+  ov.innerHTML = '<div class="anim-date"></div><div class="anim-route"></div><div class="anim-bar"><span></span></div>';
+  host.appendChild(ov);
+  const elDate = ov.querySelector('.anim-date'), elRoute = ov.querySelector('.anim-route'), elBar = ov.querySelector('.anim-bar span');
+  const flownColor = ROUTE_COLORS[appSettings.routeColor] || '#39FF8A';
+  const per = Math.max(180, Math.min(1100, 14000 / list.length));
+  const shown = new Set();
+  let i = 0;
+  const addAirport = (code) => {
+    if (shown.has(code)) return; shown.add(code);
+    const a = airportInfo(code);
+    L.circleMarker([a.lat, a.lon], { radius: HOME_AIRPORTS.includes(code) ? 8 : 5.5, color: '#fff', weight: 2,
+      fillColor: HOME_AIRPORTS.includes(code) ? '#F0755A' : flownColor, fillOpacity: 1, interactive: false }).addTo(group);
+  };
+  const step = () => {
+    if (!routeAnim || routeAnim.cancel) return;
+    if (i >= list.length) {
+      elRoute.textContent = 'Fine ✓';
+      routeAnim.timer = setTimeout(stopRouteAnimation, 1800);
+      return;
+    }
+    const f = list[i];
+    const a = airportInfo(f.from), b = airportInfo(f.to);
+    const fut = isFuture(f), color = fut ? '#E8A23D' : flownColor;
+    const d = new Date(f.date + 'T00:00:00');
+    elDate.textContent = MONTHS_IT[d.getMonth()] + ' ' + d.getFullYear();
+    elRoute.textContent = f.from + ' → ' + f.to + '  ·  ' + (i + 1) + '/' + list.length;
+    elBar.style.width = ((i + 1) / list.length * 100) + '%';
+    addAirport(f.from);
+    const line = L.polyline([[a.lat, a.lon], [a.lat, a.lon]], { color, weight: 2.4, opacity: .85, dashArray: fut ? '6, 6' : null, interactive: false }).addTo(group);
+    const dot = L.circleMarker([a.lat, a.lon], { radius: 4.5, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1, interactive: false }).addTo(group);
+    const t0 = performance.now();
+    const tick = (now) => {
+      if (!routeAnim || routeAnim.cancel) return;
+      const t = Math.min(1, (now - t0) / per);
+      const p = [a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t];
+      line.setLatLngs([[a.lat, a.lon], p]);
+      dot.setLatLng(p);
+      if (t < 1) routeAnim.raf = requestAnimationFrame(tick);
+      else { group.removeLayer(dot); addAirport(f.to); i++; step(); }
+    };
+    routeAnim.raf = requestAnimationFrame(tick);
+  };
+  step();
+}
+
+// --- Condivisione: riepilogo come immagine ed esportazione PDF ---
+function shareFlights(year) {
+  return flights.filter(isFlown).filter(f => year === 'all' || f.date.startsWith(year)).slice().sort((a, b) => a.date.localeCompare(b.date));
+}
+function renderSharePanel() {
+  const years = [...new Set(flights.filter(isFlown).map(f => f.date.slice(0, 4)))].sort((a, b) => b.localeCompare(a));
+  if (!years.length) return '';
+  return `
+    <div class="panel share-panel">
+      <div class="panel-head"><div class="panel-title"><span class="dot"></span>Condividi</div></div>
+      <div class="set-sub" style="margin-bottom:10px;">Crea il riepilogo del tuo anno in volo come immagine da condividere, oppure esporta l'elenco dei voli in PDF.</div>
+      <div class="set-btns">
+        <select class="set-select" id="share-year">
+          ${years.map((y, i) => `<option value="${y}" ${i === 0 ? 'selected' : ''}>${y}</option>`).join('')}
+          <option value="all">Tutti gli anni</option>
+        </select>
+        <button class="set-btn" id="share-img">🖼️ Immagine</button>
+        <button class="set-btn" id="share-pdf">📄 PDF</button>
+      </div>
+      <div class="set-progress" id="share-msg"></div>
+    </div>`;
+}
+function setShareMsg(t) { const el = document.getElementById('share-msg'); if (el) el.textContent = t; }
+
+async function shareYearImage(year) {
+  const list = shareFlights(year);
+  if (!list.length) { setShareMsg('Nessun volo in questo periodo.'); return; }
+  setShareMsg('Creo l\'immagine…');
+  const st = computeStats(list);
+  const W = 1080, H = 1350;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  const FONT = '-apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  const g = c.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, '#0a1020'); g.addColorStop(1, '#16264a');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  const glow = c.createRadialGradient(W * .8, 120, 20, W * .8, 120, 520);
+  glow.addColorStop(0, 'rgba(79,216,201,.22)'); glow.addColorStop(1, 'rgba(79,216,201,0)');
+  c.fillStyle = glow; c.fillRect(0, 0, W, H);
+  const rr = (x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
+  c.textBaseline = 'alphabetic';
+  c.fillStyle = '#4FD8C9'; c.font = '600 30px ' + FONT;
+  c.fillText(year === 'all' ? 'I MIEI VOLI' : 'IL MIO ANNO IN VOLO', 60, 98);
+  c.fillStyle = '#FFFFFF'; c.font = '800 150px ' + FONT;
+  c.fillText(year === 'all' ? st.firstYear + '–' + st.lastYear : year, 56, 238);
+
+  // mappa delle rotte
+  const mx = 60, my = 290, mw = W - 120, mh = 470;
+  rr(mx, my, mw, mh, 28); c.fillStyle = 'rgba(255,255,255,.05)'; c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.1)'; c.lineWidth = 2; c.stroke();
+  const codes = new Set(); list.forEach(f => { codes.add(f.from); codes.add(f.to); });
+  const pts = {}; codes.forEach(k => { const a = airportInfo(k); if (a.lat && a.lon) pts[k] = a; });
+  const arr = Object.values(pts);
+  if (arr.length) {
+    let minLa = Math.min(...arr.map(a => a.lat)), maxLa = Math.max(...arr.map(a => a.lat));
+    let minLo = Math.min(...arr.map(a => a.lon)), maxLo = Math.max(...arr.map(a => a.lon));
+    const midLa = (minLa + maxLa) / 2, k = Math.cos(midLa * Math.PI / 180);
+    let spanX = Math.max((maxLo - minLo) * k, 6), spanY = Math.max(maxLa - minLa, 6);
+    const pad = 50, sc = Math.min((mw - pad * 2) / spanX, (mh - pad * 2) / spanY);
+    const cx = (minLo + maxLo) / 2, cy = midLa;
+    const P = a => [mx + mw / 2 + (a.lon - cx) * k * sc, my + mh / 2 - (a.lat - cy) * sc];
+    c.save(); rr(mx, my, mw, mh, 28); c.clip();
+    c.strokeStyle = 'rgba(255,255,255,.06)'; c.lineWidth = 1;
+    const step = sc > 25 ? 5 : sc > 8 ? 10 : 20;
+    for (let lo = Math.floor((cx - mw / 2 / (k * sc)) / step) * step; lo < cx + mw / 2 / (k * sc); lo += step) { const x = P({ lon: lo, lat: cy })[0]; c.beginPath(); c.moveTo(x, my); c.lineTo(x, my + mh); c.stroke(); }
+    for (let la = Math.floor((cy - mh / 2 / sc) / step) * step; la < cy + mh / 2 / sc; la += step) { const y = P({ lon: cx, lat: la })[1]; c.beginPath(); c.moveTo(mx, y); c.lineTo(mx + mw, y); c.stroke(); }
+    c.lineCap = 'round';
+    const seen = new Set();
+    list.forEach(f => {
+      const key = [f.from, f.to].sort().join('|'); if (seen.has(key)) return; seen.add(key);
+      const a = pts[f.from], b = pts[f.to]; if (!a || !b) return;
+      const [x1, y1] = P(a), [x2, y2] = P(b);
+      const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+      c.beginPath(); c.moveTo(x1, y1);
+      c.quadraticCurveTo((x1 + x2) / 2 - dy * .16, (y1 + y2) / 2 + dx * .16 - len * .08, x2, y2);
+      c.strokeStyle = 'rgba(79,216,201,.8)'; c.lineWidth = 3.2; c.stroke();
+    });
+    arr.forEach(a => {
+      const home = HOME_AIRPORTS.includes(Object.keys(pts).find(k => pts[k] === a));
+      const [x, y] = P(a);
+      c.beginPath(); c.arc(x, y, home ? 11 : 8, 0, 7); c.fillStyle = home ? '#F0755A' : '#FFFFFF'; c.fill();
+      c.lineWidth = 3; c.strokeStyle = '#0a1020'; c.stroke();
+    });
+    c.restore();
+  }
+
+  // numeri
+  const km = distUnit() === 'mi' ? 'mi' : 'km';
+  const cells = [
+    [String(st.totalFlights), 'voli'],
+    [fmtDist(st.totalKm), km + ' percorsi'],
+    [fmtHoursStat(st.totalHours).replace(/<[^>]*>/g, ''), 'ore di volo'],
+    [String(st.airportSet.size), 'aeroporti'],
+    [String(st.countrySet.size), 'paesi'],
+    [fmtNum(st.totalCO2Tonnes, 2) + ' t', 'CO₂ stimata']
+  ];
+  const cw = (W - 120 - 40) / 3, ch = 150;
+  cells.forEach((cell, n) => {
+    const x = 60 + (n % 3) * (cw + 20), y = 800 + Math.floor(n / 3) * (ch + 20);
+    rr(x, y, cw, ch, 22); c.fillStyle = 'rgba(255,255,255,.06)'; c.fill();
+    c.fillStyle = '#FFFFFF'; c.font = '800 54px ' + FONT; c.fillText(cell[0], x + 24, y + 80, cw - 40);
+    c.fillStyle = '#8B99B8'; c.font = '500 26px ' + FONT; c.fillText(cell[1], x + 24, y + 120, cw - 40);
+  });
+
+  // curiosità
+  const top = (fn) => { const m = {}; list.forEach(f => { const k = fn(f); if (k) m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1])[0]; };
+  const tc = top(f => f.company);
+  const tr = top(f => [f.from, f.to].sort().join(' ↔ '));
+  const lines = [];
+  if (tc) lines.push(['Compagnia preferita', tc[0] + ' · ' + tc[1] + (tc[1] === 1 ? ' volo' : ' voli')]);
+  if (tr) lines.push(['Rotta più frequente', tr[0] + ' · ' + tr[1] + (tr[1] === 1 ? ' volo' : ' voli')]);
+  const lg = list.filter(f => f.km > 0).sort((a, b) => b.km - a.km)[0];
+  if (lg) lines.push(['Volo più lungo', lg.from + ' → ' + lg.to + ' · ' + fmtDist(lg.km) + ' ' + km]);
+  lines.slice(0, 3).forEach((l, n) => {
+    const y = 1160 + n * 50;
+    c.fillStyle = '#8B99B8'; c.font = '500 26px ' + FONT; c.fillText(l[0], 60, y);
+    c.fillStyle = '#FFFFFF'; c.font = '700 28px ' + FONT; c.textAlign = 'right'; c.fillText(l[1], W - 60, y, 600); c.textAlign = 'left';
+  });
+  c.fillStyle = 'rgba(255,255,255,.35)'; c.font = '600 24px ' + FONT; c.fillText('✈ I miei voli', 60, H - 26);
+
+  cv.toBlob(async (blob) => {
+    if (!blob) { setShareMsg('Non sono riuscito a creare l\'immagine.'); return; }
+    const name = 'i-miei-voli-' + (year === 'all' ? 'tutti' : year) + '.png';
+    try {
+      const file = new File([blob], name, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'I miei voli ' + (year === 'all' ? '' : year) });
+        setShareMsg('Condiviso ✓'); return;
+      }
+    } catch (e) { if (e && e.name === 'AbortError') { setShareMsg(''); return; } }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    setShareMsg('Immagine salvata ✓');
+  }, 'image/png');
+}
+
+function exportFlightsPdf(year) {
+  const list = shareFlights(year);
+  if (!list.length) { setShareMsg('Nessun volo in questo periodo.'); return; }
+  if (!(window.jspdf && window.jspdf.jsPDF)) { setShareMsg('Libreria PDF non disponibile: serve la connessione, riprova.'); return; }
+  const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const t = s => String(s == null ? '' : s).replace(/[→↔]/g, '>').replace(/€/g, 'EUR').replace(/[^\x20-\xFF]/g, '?');
+  const st = computeStats(list);
+  const km = distUnit() === 'mi' ? 'mi' : 'km';
+  const cols = [['Data', 24], ['Tratta', 30], ['Compagnia', 42], ['Volo', 20], ['Aereo', 50], ['Matricola', 24], [km, 22, 'r'], ['Prezzo', 26, 'r'], ['Tipo', 22]];
+  const X0 = 10;
+  let y = 0, page = 0;
+  const header = () => {
+    page++; y = 14;
+    if (page === 1) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+      doc.text(t('I miei voli - ' + (year === 'all' ? 'tutti gli anni' : year)), X0, y); y += 7;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90);
+      doc.text(t(st.totalFlights + ' voli  |  ' + fmtDist(st.totalKm) + ' ' + km + '  |  ' + fmtHoursStat(st.totalHours).replace(/<[^>]*>/g, '') + ' di volo  |  ' + st.airportSet.size + ' aeroporti  |  ' + st.countrySet.size + ' paesi'), X0, y);
+      doc.setTextColor(0); y += 8;
+    }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+    doc.setFillColor(230, 235, 245); doc.rect(X0, y - 4.5, 277, 6.5, 'F');
+    let x = X0 + 1;
+    cols.forEach(cl => { doc.text(t(cl[0]), cl[2] === 'r' ? x + cl[1] - 3 : x, y, cl[2] === 'r' ? { align: 'right' } : undefined); x += cl[1]; });
+    y += 6; doc.setFont('helvetica', 'normal');
+  };
+  header();
+  let total = 0, rows = 0;
+  list.forEach(f => {
+    if (y > 196) { doc.addPage(); header(); }
+    if (rows % 2) { doc.setFillColor(246, 248, 252); doc.rect(X0, y - 4, 277, 6, 'F'); }
+    const vals = [f.date.split('-').reverse().join('/'), f.from + ' > ' + f.to, f.company, f.flightNumber, f.aircraft, f.tail,
+      f.km ? fmtDist(f.km) : '', f.price ? fmtNum(f.price, 2) + ' ' + (cur() === '€' ? 'EUR' : cur()) : '', isWorkFlight(f) ? 'Lavoro' : 'Vacanza'];
+    let x = X0 + 1;
+    cols.forEach((cl, n) => {
+      let s = t(vals[n]);
+      while (s.length > 1 && doc.getTextWidth(s) > cl[1] - 3) s = s.slice(0, -1);
+      doc.text(s, cl[2] === 'r' ? x + cl[1] - 3 : x, y, cl[2] === 'r' ? { align: 'right' } : undefined);
+      x += cl[1];
+    });
+    if (f.price) total += f.price;
+    y += 6; rows++;
+  });
+  if (total > 0) {
+    y += 3; doc.setFont('helvetica', 'bold');
+    doc.text(t('Spesa totale: ' + fmtNum(total, 2) + ' ' + (cur() === '€' ? 'EUR' : cur())), X0 + 1, y);
+  }
+  const n = doc.getNumberOfPages();
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120);
+  for (let p = 1; p <= n; p++) { doc.setPage(p); doc.text(t('Pagina ' + p + ' di ' + n), 287, 205, { align: 'right' }); }
+  doc.save('i-miei-voli-' + (year === 'all' ? 'tutti' : year) + '.pdf');
+  setShareMsg('PDF salvato ✓');
 }
 
 function switchMapStyle(style) {
@@ -1403,7 +1670,7 @@ function switchMapStyle(style) {
   const showLabels = appSettings.mapLabels !== 'off';
   if (style === 'satellite') { layers.satLayer.addTo(map); if (showLabels) layers.satLabels.addTo(map); }
   else { layers.darkLayer.addTo(map); if (showLabels) layers.darkLabels.addTo(map); }
-  const btns = root.querySelectorAll('.map-fab');
+  const btns = root.querySelectorAll('.map-fab[data-style]');
   btns.forEach(b => b.classList.toggle('active', b.getAttribute('data-style') === style));
 }
 
@@ -1708,7 +1975,7 @@ function renderPass(f, idx) {
           <span class="pass-airline"><b>${getAirlineLogo(f.company)} ${f.company}</b></span>
         </div>
         <div class="pass-line-fixed">
-          ${f.aircraft ? `<span class="pass-ac">${aircraftIconHtml(f)}${f.aircraft}</span>` : ''}
+          ${f.aircraft ? `<span>${f.aircraft}</span>` : ''}
           ${f.tail ? `<span class="pass-tail${isRepeatTail?' pass-tail-repeat':''}"${isRepeatTail?` data-tail="${f.tail}" title="Aereo visto ${tailCounts[f.tail]} volte — clicca per vedere gli altri voli"`:''}>${f.tail}</span>` : ''}
           ${f.km ? `<span>${fmtDist(f.km)} ${distUnit()}</span>` : ''}
         </div>
@@ -1723,6 +1990,7 @@ function renderPass(f, idx) {
         <div class="date-m">${month}</div>
         <div class="date-y">${year}</div>
         ${f.seat ? `<div class="stub-seat">${f.seat}</div>` : ''}
+        <button class="pass-ret" data-ret="${idx}" title="Aggiungi il volo di ritorno">↩ Ritorno</button>
       </div>
       <button class="pass-edit" data-edit="${idx}" title="Modifica volo">✎</button>
       <button class="pass-del" data-del="${idx}" title="Elimina volo">✕</button>
@@ -2415,6 +2683,7 @@ function renderHomeView(stats, mapFlights) {
         <div class="map-fab-stack">
           <button class="map-fab ${mapStyle==='satellite'?'active':''}" data-style="satellite" title="Vista satellite">🛰️</button>
           <button class="map-fab ${mapStyle==='dark'?'active':''}" data-style="dark" title="Vista scura">🌑</button>
+          <button class="map-fab" data-anim="1" title="Animazione dei voli">▶</button>
         </div>
       </div>
       <div class="upcoming-sheet glass-panel">
@@ -2516,12 +2785,14 @@ function renderStatsView(stats) {
       ${renderStatStrip(stats)}
       ${renderRecordsPanel()}
       ${renderRankPanels()}
+      ${renderSharePanel()}
       <div class="footer-note">I dati vengono salvati online (sincronizzati su tutti i tuoi dispositivi). Clicca anno / aeroporto / compagnia / aereo per filtrare tutta la dashboard.</div>
     </div>
     ${renderBottomNav()}`;
 }
 
 function render() {
+  if (routeAnim) { routeAnim.cancel = true; cancelAnimationFrame(routeAnim.raf); clearTimeout(routeAnim.timer); routeAnim = null; }
   const filteredForStats = applyGlobalFilters(getBaseFlights(), null);
   const stats = computeStats(filteredForStats);
   const mapFlights = currentView === 'home' ? getHomeListFlights() : filteredForStats;
@@ -2659,8 +2930,13 @@ function bindEvents(mapFlights) {
 
   // map style toggle
   root.querySelectorAll('.map-fab').forEach(btn => {
-    btn.addEventListener('click', () => switchMapStyle(btn.getAttribute('data-style')));
+    btn.addEventListener('click', () => { if (btn.hasAttribute('data-anim')) startRouteAnimation(); else switchMapStyle(btn.getAttribute('data-style')); });
   });
+
+  const shImg = root.querySelector('#share-img');
+  if (shImg) shImg.addEventListener('click', () => shareYearImage(root.querySelector('#share-year').value));
+  const shPdf = root.querySelector('#share-pdf');
+  if (shPdf) shPdf.addEventListener('click', () => exportFlightsPdf(root.querySelector('#share-year').value));
 
   const sortSel = root.querySelector('#sort-select');
   if (sortSel) sortSel.addEventListener('change', () => {
@@ -2971,6 +3247,9 @@ async function openEditForm(idx) {
 }
 
 function bindPassEdit() {
+  root.querySelectorAll('[data-ret]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); openReturnForm(parseInt(btn.getAttribute('data-ret'), 10)); });
+  });
   root.querySelectorAll('[data-edit]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
